@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>CIC.BIM.Addin.FacilityMgmt</RootNamespace>
+    <AssemblyName>CIC.BIM.Addin.FacilityMgmt</AssemblyName>
+    
+    <OutputPath>..\..\bin\$(Configuration)\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <!-- Copy NuGet DLLs (ClosedXML etc.) to output folder for Revit to load -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <!-- Revit 2025 API References -->
+  <PropertyGroup>
+    <RevitVersion>2025</RevitVersion>
+    <RevitApiPath>$(ProgramFiles)\Autodesk\Revit $(RevitVersion)</RevitApiPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="RevitAPI">
+      <HintPath>$(RevitApiPath)\RevitAPI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="RevitAPIUI">
+      <HintPath>$(RevitApiPath)\RevitAPIUI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- ClosedXML for Excel export -->
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.104.2" />
+  </ItemGroup>
+
+  <!-- WinForms for SaveFileDialog in Revit context -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
+  </ItemGroup>
+
+  <!-- Embed shared parameter file -->
+  <ItemGroup>
+    <EmbeddedResource Include="FMSharedParamFile.txt" />
+  </ItemGroup>
+
+</Project>

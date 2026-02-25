@@ -1,0 +1,22 @@
+# Build outputs
+bin/
+obj/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# IDE
+.vs/
+.idea/
+*.csproj.user
+
+# NuGet
+packages/
+*.nupkg
+
+# Misc
+*.log
+*.tmp
+read_excel*.ps1
+ideas_data.tsv

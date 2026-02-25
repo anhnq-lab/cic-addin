@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>CIC.BIM.Addin</RootNamespace>
+    <AssemblyName>CIC.BIM.Addin</AssemblyName>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    
+    <!-- Output to a common bin folder for easy deployment -->
+    <OutputPath>..\..\bin\$(Configuration)\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <!-- Revit 2025 API References -->
+  <PropertyGroup>
+    <RevitVersion>2025</RevitVersion>
+    <RevitApiPath>$(ProgramFiles)\Autodesk\Revit $(RevitVersion)</RevitApiPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="RevitAPI">
+      <HintPath>$(RevitApiPath)\RevitAPI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="RevitAPIUI">
+      <HintPath>$(RevitApiPath)\RevitAPIUI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="AdWindows">
+      <HintPath>$(RevitApiPath)\AdWindows.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Project References -->
+  <ItemGroup>
+    <ProjectReference Include="..\CIC.BIM.Addin.FacilityMgmt\CIC.BIM.Addin.FacilityMgmt.csproj" />
+    <ProjectReference Include="..\CIC.BIM.Addin.Analytics\CIC.BIM.Addin.Analytics.csproj" />
+  </ItemGroup>
+
+  <!-- Embed icons as resources -->
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\*.png" />
+  </ItemGroup>
+
+  <!-- Copy .addin manifest to output -->
+  <ItemGroup>
+    <None Include="CIC.BIM.Addin.addin" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

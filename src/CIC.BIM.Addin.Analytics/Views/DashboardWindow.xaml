@@ -1,0 +1,124 @@
+<Window x:Class="CIC.BIM.Addin.Analytics.Views.DashboardWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="📊 CIC Analytics Dashboard" 
+        Width="900" Height="650"
+        WindowStartupLocation="CenterScreen"
+        Background="#1E1E2E"
+        Foreground="#CDD6F4">
+
+    <Window.Resources>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#CDD6F4"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+        </Style>
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="Background" Value="#313244"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Margin" Value="8"/>
+        </Style>
+        <Style x:Key="HeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#89B4FA"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+        <Style x:Key="MetricValue" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="28"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#F5E0DC"/>
+        </Style>
+        <Style x:Key="MetricLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="#6C7086"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
+            <TextBlock Text="📊 CIC Analytics Dashboard" FontSize="22" FontWeight="Bold" 
+                       Foreground="#CDD6F4" VerticalAlignment="Center"/>
+            <TextBlock Text=" — " FontSize="16" Foreground="#6C7086" VerticalAlignment="Center"/>
+            <TextBlock x:Name="DateLabel" FontSize="16" Foreground="#A6ADC8" VerticalAlignment="Center"/>
+            <Border Background="#45475A" CornerRadius="4" Padding="8,4" Margin="16,0,0,0" VerticalAlignment="Center">
+                <TextBlock x:Name="UserLabel" FontSize="11" Foreground="#BAC2DE"/>
+            </Border>
+        </StackPanel>
+
+        <!-- KPI Cards Row -->
+        <UniformGrid Grid.Row="1" Columns="5" Margin="0,0,0,8">
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel>
+                    <TextBlock Text="⏱ Tổng Active" Style="{StaticResource MetricLabel}"/>
+                    <TextBlock x:Name="TotalActiveText" Style="{StaticResource MetricValue}" Text="0h"/>
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel>
+                    <TextBlock Text="🏗 Modeling" Style="{StaticResource MetricLabel}"/>
+                    <TextBlock x:Name="ModelingText" Style="{StaticResource MetricValue}" Text="0m" Foreground="#A6E3A1"/>
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel>
+                    <TextBlock Text="✏️ Editing" Style="{StaticResource MetricLabel}"/>
+                    <TextBlock x:Name="EditingText" Style="{StaticResource MetricValue}" Text="0m" Foreground="#89B4FA"/>
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel>
+                    <TextBlock Text="😴 Idle" Style="{StaticResource MetricLabel}"/>
+                    <TextBlock x:Name="IdleText" Style="{StaticResource MetricValue}" Text="0m" Foreground="#F38BA8"/>
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel>
+                    <TextBlock Text="📁 Sessions" Style="{StaticResource MetricLabel}"/>
+                    <TextBlock x:Name="SessionsText" Style="{StaticResource MetricValue}" Text="0"/>
+                </StackPanel>
+            </Border>
+        </UniformGrid>
+
+        <!-- Charts Area -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Activity Distribution (Pie-like horizontal bars) -->
+            <Border Grid.Column="0" Style="{StaticResource CardStyle}">
+                <StackPanel>
+                    <TextBlock Text="📊 Phân bổ hoạt động hôm nay" Style="{StaticResource HeaderStyle}"/>
+                    <StackPanel x:Name="ActivityBarsPanel" Margin="0,8,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Weekly trend -->
+            <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+                <StackPanel>
+                    <TextBlock Text="📈 Xu hướng trong tuần" Style="{StaticResource HeaderStyle}"/>
+                    <Canvas x:Name="WeeklyChartCanvas" Height="280" Margin="0,8,0,0"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Footer: warnings & info -->
+        <Border Grid.Row="3" Style="{StaticResource CardStyle}">
+            <StackPanel>
+                <TextBlock Text="⚠️ Phát hiện" Style="{StaticResource HeaderStyle}"/>
+                <TextBlock x:Name="WarningsText" TextWrapping="Wrap" FontSize="12" Foreground="#F9E2AF"
+                           Text="Đang phân tích dữ liệu..."/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
