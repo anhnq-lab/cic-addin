@@ -35,6 +35,12 @@ public class LocalStore : IDisposable
         _connection = new SqliteConnection($"Data Source={_dbPath}");
         _connection.Open();
 
+        // Performance pragmas — WAL enables concurrent reads during writes,
+        // NORMAL sync is crash-safe with WAL and much faster than FULL
+        using var pragma = _connection.CreateCommand();
+        pragma.CommandText = "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;";
+        pragma.ExecuteNonQuery();
+
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = @"
             CREATE TABLE IF NOT EXISTS sessions (
@@ -81,6 +87,34 @@ public class LocalStore : IDisposable
             CREATE INDEX IF NOT EXISTS idx_sessions_sync ON sessions(synced_to_cloud);
         ";
         cmd.ExecuteNonQuery();
+
+        // ═══ Auto-migration: add new columns if they don't exist ═══
+        MigrateSchema();
+    }
+
+    /// <summary>
+    /// Add new columns for element tracking and department (safe if already exist)
+    /// </summary>
+    private void MigrateSchema()
+    {
+        if (_connection == null) return;
+        var migrations = new[]
+        {
+            "ALTER TABLE sessions ADD COLUMN total_elements_created INTEGER DEFAULT 0",
+            "ALTER TABLE sessions ADD COLUMN total_elements_modified INTEGER DEFAULT 0",
+            "ALTER TABLE sessions ADD COLUMN total_elements_deleted INTEGER DEFAULT 0",
+            "ALTER TABLE sessions ADD COLUMN department_name TEXT",
+        };
+        foreach (var sql in migrations)
+        {
+            try
+            {
+                using var cmd = _connection.CreateCommand();
+                cmd.CommandText = sql;
+                cmd.ExecuteNonQuery();
+            }
+            catch { /* Column already exists — ignore */ }
+        }
     }
 
     /// <summary>
@@ -107,9 +141,10 @@ public class LocalStore : IDisposable
     }
 
     /// <summary>
-    /// End a work session
+    /// End a work session with element counts for productivity tracking
     /// </summary>
-    public void EndSession(string sessionId, int activeSeconds, int idleSeconds)
+    public void EndSession(string sessionId, int activeSeconds, int idleSeconds,
+        int elementsCreated = 0, int elementsModified = 0, int elementsDeleted = 0)
     {
         lock (_lock)
         {
@@ -117,12 +152,17 @@ public class LocalStore : IDisposable
             using var cmd = _connection.CreateCommand();
             cmd.CommandText = @"
                 UPDATE sessions 
-                SET ended_at = $ended, total_active_seconds = $active, total_idle_seconds = $idle
+                SET ended_at = $ended, total_active_seconds = $active, total_idle_seconds = $idle,
+                    total_elements_created = $created, total_elements_modified = $modified,
+                    total_elements_deleted = $deleted
                 WHERE id = $id";
             cmd.Parameters.AddWithValue("$id", sessionId);
             cmd.Parameters.AddWithValue("$ended", DateTime.UtcNow.ToString("o"));
             cmd.Parameters.AddWithValue("$active", activeSeconds);
             cmd.Parameters.AddWithValue("$idle", idleSeconds);
+            cmd.Parameters.AddWithValue("$created", elementsCreated);
+            cmd.Parameters.AddWithValue("$modified", elementsModified);
+            cmd.Parameters.AddWithValue("$deleted", elementsDeleted);
             cmd.ExecuteNonQuery();
         }
     }
@@ -138,24 +178,37 @@ public class LocalStore : IDisposable
             using var transaction = _connection.BeginTransaction();
             try
             {
+                // Reuse single prepared command — avoids per-row object allocation
+                using var cmd = _connection.CreateCommand();
+                cmd.Transaction = transaction;
+                cmd.CommandText = @"
+                    INSERT INTO activity_events 
+                    (session_id, timestamp, category, sub_category, element_count, 
+                     duration_seconds, transaction_names, active_view_name, active_view_type)
+                    VALUES ($sid, $ts, $cat, $sub, $count, $dur, $txn, $view, $vtype)";
+
+                var pSid = cmd.Parameters.Add("$sid", SqliteType.Text);
+                var pTs = cmd.Parameters.Add("$ts", SqliteType.Text);
+                var pCat = cmd.Parameters.Add("$cat", SqliteType.Text);
+                var pSub = cmd.Parameters.Add("$sub", SqliteType.Text);
+                var pCount = cmd.Parameters.Add("$count", SqliteType.Integer);
+                var pDur = cmd.Parameters.Add("$dur", SqliteType.Integer);
+                var pTxn = cmd.Parameters.Add("$txn", SqliteType.Text);
+                var pView = cmd.Parameters.Add("$view", SqliteType.Text);
+                var pVtype = cmd.Parameters.Add("$vtype", SqliteType.Text);
+                cmd.Prepare();
+
                 foreach (var evt in events)
                 {
-                    using var cmd = _connection.CreateCommand();
-                    cmd.Transaction = transaction;
-                    cmd.CommandText = @"
-                        INSERT INTO activity_events 
-                        (session_id, timestamp, category, sub_category, element_count, 
-                         duration_seconds, transaction_names, active_view_name, active_view_type)
-                        VALUES ($sid, $ts, $cat, $sub, $count, $dur, $txn, $view, $vtype)";
-                    cmd.Parameters.AddWithValue("$sid", evt.SessionId);
-                    cmd.Parameters.AddWithValue("$ts", evt.Timestamp.ToString("o"));
-                    cmd.Parameters.AddWithValue("$cat", evt.Category.ToString());
-                    cmd.Parameters.AddWithValue("$sub", evt.SubCategory ?? (object)DBNull.Value);
-                    cmd.Parameters.AddWithValue("$count", evt.ElementCount);
-                    cmd.Parameters.AddWithValue("$dur", evt.DurationSeconds);
-                    cmd.Parameters.AddWithValue("$txn", evt.TransactionNames ?? (object)DBNull.Value);
-                    cmd.Parameters.AddWithValue("$view", evt.ActiveViewName ?? (object)DBNull.Value);
-                    cmd.Parameters.AddWithValue("$vtype", evt.ActiveViewType ?? (object)DBNull.Value);
+                    pSid.Value = evt.SessionId;
+                    pTs.Value = evt.Timestamp.ToString("o");
+                    pCat.Value = evt.Category.ToString();
+                    pSub.Value = (object?)evt.SubCategory ?? DBNull.Value;
+                    pCount.Value = evt.ElementCount;
+                    pDur.Value = evt.DurationSeconds;
+                    pTxn.Value = (object?)evt.TransactionNames ?? DBNull.Value;
+                    pView.Value = (object?)evt.ActiveViewName ?? DBNull.Value;
+                    pVtype.Value = (object?)evt.ActiveViewType ?? DBNull.Value;
                     cmd.ExecuteNonQuery();
                 }
                 transaction.Commit();
@@ -215,7 +268,11 @@ public class LocalStore : IDisposable
                     EndedAt = reader.IsDBNull(7) ? null : DateTime.Parse(reader.GetString(7)),
                     TotalActiveSeconds = reader.GetInt32(8),
                     TotalIdleSeconds = reader.GetInt32(9),
-                    SyncedToCloud = false
+                    SyncedToCloud = false,
+                    TotalElementsCreated = reader.FieldCount > 11 && !reader.IsDBNull(11) ? reader.GetInt32(11) : 0,
+                    TotalElementsModified = reader.FieldCount > 12 && !reader.IsDBNull(12) ? reader.GetInt32(12) : 0,
+                    TotalElementsDeleted = reader.FieldCount > 13 && !reader.IsDBNull(13) ? reader.GetInt32(13) : 0,
+                    DepartmentName = reader.FieldCount > 14 && !reader.IsDBNull(14) ? reader.GetString(14) : null,
                 });
             }
             return sessions;
@@ -242,7 +299,7 @@ public class LocalStore : IDisposable
                     Id = reader.GetInt64(0),
                     SessionId = reader.GetString(1),
                     Timestamp = DateTime.Parse(reader.GetString(2)),
-                    Category = Enum.Parse<ActivityCategory>(reader.GetString(3)),
+                    Category = (ActivityCategory)Enum.Parse(typeof(ActivityCategory), reader.GetString(3)),
                     SubCategory = reader.IsDBNull(4) ? null : reader.GetString(4),
                     ElementCount = reader.GetInt32(5),
                     DurationSeconds = reader.GetInt32(6),
@@ -264,13 +321,16 @@ public class LocalStore : IDisposable
         lock (_lock)
         {
             if (_connection == null) return;
-            foreach (var id in sessionIds)
-            {
-                using var cmd = _connection.CreateCommand();
-                cmd.CommandText = "UPDATE sessions SET synced_to_cloud = 1 WHERE id = $id";
-                cmd.Parameters.AddWithValue("$id", id);
-                cmd.ExecuteNonQuery();
-            }
+            var ids = sessionIds.ToList();
+            if (ids.Count == 0) return;
+
+            // Batch UPDATE with IN clause — single round-trip instead of N
+            var placeholders = string.Join(",", ids.Select((_, i) => $"$id{i}"));
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = $"UPDATE sessions SET synced_to_cloud = 1 WHERE id IN ({placeholders})";
+            for (int i = 0; i < ids.Count; i++)
+                cmd.Parameters.AddWithValue($"$id{i}", ids[i]);
+            cmd.ExecuteNonQuery();
         }
     }
 
@@ -279,16 +339,16 @@ public class LocalStore : IDisposable
         lock (_lock)
         {
             if (_connection == null) return;
-            using var transaction = _connection.BeginTransaction();
-            foreach (var id in eventIds)
-            {
-                using var cmd = _connection.CreateCommand();
-                cmd.Transaction = transaction;
-                cmd.CommandText = "UPDATE activity_events SET synced_to_cloud = 1 WHERE id = $id";
-                cmd.Parameters.AddWithValue("$id", id);
-                cmd.ExecuteNonQuery();
-            }
-            transaction.Commit();
+            var ids = eventIds.ToList();
+            if (ids.Count == 0) return;
+
+            // Batch UPDATE with IN clause — single round-trip instead of N
+            var placeholders = string.Join(",", ids.Select((_, i) => $"$id{i}"));
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = $"UPDATE activity_events SET synced_to_cloud = 1 WHERE id IN ({placeholders})";
+            for (int i = 0; i < ids.Count; i++)
+                cmd.Parameters.AddWithValue($"$id{i}", ids[i]);
+            cmd.ExecuteNonQuery();
         }
     }
 
@@ -334,12 +394,41 @@ public class LocalStore : IDisposable
                     case nameof(ActivityCategory.Viewing): summary.ViewingMinutes = minutes; break;
                     case nameof(ActivityCategory.Documenting): summary.DocumentingMinutes = minutes; break;
                     case nameof(ActivityCategory.FileOps): summary.FileOpsMinutes = minutes; break;
+                    case nameof(ActivityCategory.Coordinating): summary.CoordinatingMinutes = minutes; break;
                     case nameof(ActivityCategory.Idle): summary.IdleMinutes = minutes; break;
+                    case nameof(ActivityCategory.DialogWait): summary.DialogWaitMinutes = minutes; break;
                 }
             }
 
             summary.TotalActiveMinutes = summary.ModelingMinutes + summary.EditingMinutes
-                + summary.ViewingMinutes + summary.DocumentingMinutes + summary.FileOpsMinutes;
+                + summary.ViewingMinutes + summary.DocumentingMinutes + summary.FileOpsMinutes
+                + summary.CoordinatingMinutes;
+
+            // Element counts from sessions
+            using var cmdElm = _connection.CreateCommand();
+            cmdElm.CommandText = @"
+                SELECT COALESCE(SUM(total_elements_created),0),
+                       COALESCE(SUM(total_elements_modified),0),
+                       COALESCE(SUM(total_elements_deleted),0)
+                FROM sessions
+                WHERE DATE(started_at) = $date
+                AND ($project IS NULL OR project_name = $project)";
+            cmdElm.Parameters.AddWithValue("$date", dateStr);
+            cmdElm.Parameters.AddWithValue("$project", projectName ?? (object)DBNull.Value);
+            using var elmReader = cmdElm.ExecuteReader();
+            if (elmReader.Read())
+            {
+                summary.ElementsCreated = elmReader.GetInt32(0);
+                summary.ElementsModified = elmReader.GetInt32(1);
+                summary.ElementsDeleted = elmReader.GetInt32(2);
+            }
+
+            // EPR: Elements Per Active Hour
+            if (summary.TotalActiveMinutes > 0)
+            {
+                var activeHours = summary.TotalActiveMinutes / 60.0;
+                summary.ElementsPerActiveHour = (summary.ElementsCreated + summary.ElementsModified) / activeHours;
+            }
 
             // Count sessions
             using var cmd2 = _connection.CreateCommand();

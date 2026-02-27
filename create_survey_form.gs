@@ -24,6 +24,9 @@ function createSurveyForm() {
   form.setAllowResponseEdits(true);
   form.setProgressBar(true);
 
+  // Mảng lưu trữ tất cả các ý tưởng để dùng cho phần chọn TOP 5
+  var allIdeas = [];
+
   // ============================================================
   // PHẦN A: THÔNG TIN CÁ NHÂN
   // ============================================================
@@ -114,6 +117,8 @@ function createSurveyForm() {
       .setTitle(item[0] + ' — Mức độ cần thiết')
       .setBounds(1, 5)
       .setLabels('Không cần', 'Rất cần');
+    
+    allIdeas.push(item[0]);
   });
 
   // --- B2: Nhóm Bản vẽ ---
@@ -137,6 +142,8 @@ function createSurveyForm() {
       .setTitle(item[0] + ' — Mức độ cần thiết')
       .setBounds(1, 5)
       .setLabels('Không cần', 'Rất cần');
+
+    allIdeas.push(item[0]);
   });
 
   // --- B3: Nhóm Khối lượng ---
@@ -159,6 +166,8 @@ function createSurveyForm() {
       .setTitle(item[0] + ' — Mức độ cần thiết')
       .setBounds(1, 5)
       .setLabels('Không cần', 'Rất cần');
+
+    allIdeas.push(item[0]);
   });
 
   // --- B4: Nhóm Va chạm ---
@@ -175,13 +184,21 @@ function createSurveyForm() {
     .setBounds(1, 5)
     .setLabels('Không cần', 'Rất cần');
 
-  // --- TOP 5 ---
+  allIdeas.push('B4.1 – Tìm/Lọc ống trục đứng');
+
   form.addPageBreakItem()
     .setTitle('PHẦN B5: Xếp hạng TOP 5');
 
-  form.addParagraphTextItem()
-    .setTitle('B5. Chọn TOP 5 ý tưởng bạn muốn có NHẤT (ghi mã, VD: B1.04, B1.10, B2.2, B3.1, B1.21)')
-    .setHelpText('Liệt kê 5 mã ý tưởng bạn cho là quan trọng và cấp bách nhất, cách nhau bởi dấu phẩy.')
+  var checkboxValidation = FormApp.createCheckboxValidation()
+    .requireSelectExactly(5)
+    .setHelpText('Vui lòng chọn ĐÚNG 5 ý tưởng mà bạn cho là quan trọng nhất.')
+    .build();
+
+  form.addCheckboxItem()
+    .setTitle('B5. Chọn TOP 5 ý tưởng bạn muốn có NHẤT')
+    .setHelpText('Chọn đúng 5 mục từ danh sách bên dưới (bao gồm mã và tên ý tưởng).')
+    .setChoiceValues(allIdeas)
+    .setValidation(checkboxValidation)
     .setRequired(true);
 
   // ============================================================

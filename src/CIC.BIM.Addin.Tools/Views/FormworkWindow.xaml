@@ -1,0 +1,172 @@
+<Window x:Class="CIC.BIM.Addin.Tools.Views.FormworkWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🏗️ Thống kê Ván khuôn — B3.2"
+        Width="780" Height="780" MinWidth="650" MinHeight="650"
+        WindowStartupLocation="CenterScreen"
+        Background="#1E1E2E" Foreground="#CDD6F4">
+
+    <Window.Resources>
+        <ResourceDictionary Source="../Themes/ToolStyles.xaml"/>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ═══ HEADER ═══ -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <DockPanel>
+                <Border Style="{StaticResource DeptBadge}" Background="#233A5C" DockPanel.Dock="Right">
+                    <TextBlock Text="KC — Kết cấu" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource BlueBrush}"/>
+                </Border>
+                <TextBlock Text="🏗️ Thống kê Ván khuôn" FontSize="18" FontWeight="Bold"/>
+            </DockPanel>
+            <TextBlock Text="B3.2 — Tính diện tích, tạo geometry 3D, ghi Shared Parameter" FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0"/>
+            <Border Height="2" Background="{StaticResource BlueBrush}" Margin="0,10,0,0" Opacity="0.4"/>
+        </StackPanel>
+
+        <!-- ═══ CONTENT ═══ -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+
+                <!-- ① Chọn loại cấu kiện -->
+                <TextBlock Text="① CHỌN LOẠI CẤU KIỆN" Style="{StaticResource SectionHeader}"/>
+                <Border Style="{StaticResource Card}">
+                    <WrapPanel>
+                        <CheckBox x:Name="ChkBeam" Content="Dầm (Beam)" Style="{StaticResource DarkCheckBox}" IsChecked="True" Margin="0,3,20,3"/>
+                        <CheckBox x:Name="ChkColumn" Content="Cột (Column)" Style="{StaticResource DarkCheckBox}" IsChecked="True" Margin="0,3,20,3"/>
+                        <CheckBox x:Name="ChkWall" Content="Tường (Wall)" Style="{StaticResource DarkCheckBox}" IsChecked="True" Margin="0,3,20,3"/>
+                        <CheckBox x:Name="ChkFloor" Content="Sàn (Floor)" Style="{StaticResource DarkCheckBox}" Margin="0,3,20,3"/>
+                        <CheckBox x:Name="ChkFoundation" Content="Móng (Foundation)" Style="{StaticResource DarkCheckBox}" Margin="0,3,20,3"/>
+                    </WrapPanel>
+                </Border>
+
+                <!-- ② Tùy chọn -->
+                <TextBlock Text="② TÙY CHỌN" Style="{StaticResource SectionHeader}"/>
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+                            <CheckBox x:Name="ChkAutoDeduct" Content="✂️ Tự trừ giao nhau (dầm-cột, dầm-sàn, cột-tường)"
+                                      Style="{StaticResource DarkCheckBox}" IsChecked="True"/>
+                            <CheckBox x:Name="ChkSaveSharedParam" Content="💾 Lưu CIC_FormworkArea vào cấu kiện"
+                                      Style="{StaticResource DarkCheckBox}" IsChecked="True"/>
+                            <CheckBox x:Name="ChkCreateGeometry" Content="🏗️ Tạo ván khuôn 3D (DirectShape màu nâu)"
+                                      Style="{StaticResource DarkCheckBox}" IsChecked="True"/>
+                            <CheckBox x:Name="ChkGroupByLevel" Content="📊 Nhóm theo tầng (Level)"
+                                      Style="{StaticResource DarkCheckBox}" IsChecked="True"/>
+                            <CheckBox x:Name="ChkGroupByType" Content="📋 Nhóm theo Type cấu kiện"
+                                      Style="{StaticResource DarkCheckBox}"/>
+                        </StackPanel>
+
+                        <!-- Độ dày ván khuôn -->
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top" Margin="16,0,0,0">
+                            <TextBlock Text="Độ dày VK:" FontSize="12"
+                                       Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBox x:Name="TxtThickness" Text="18" Width="50"
+                                     Style="{StaticResource DarkTextBox}" FontSize="12" Padding="6,4"/>
+                            <TextBlock Text="mm" FontSize="12"
+                                       Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- ③ Tiến trình -->
+                <Border Style="{StaticResource Card}" Padding="12,8">
+                    <StackPanel>
+                        <ProgressBar x:Name="PrgMain" Height="4" Minimum="0" Maximum="100" Value="0"
+                                     Background="#45475A" Foreground="#89B4FA" BorderThickness="0"/>
+                        <TextBlock x:Name="TxtStatus" Text="Sẵn sàng. Chọn cấu kiện và bấm ▶ để bắt đầu." FontSize="11.5"
+                                   Foreground="{StaticResource TextSecBrush}" Margin="0,6,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- ④ Kết quả -->
+                <TextBlock x:Name="TxtResultHeader" Text="④ KẾT QUẢ" Style="{StaticResource SectionHeader}" Visibility="Collapsed"/>
+                <Border x:Name="ResultPanel" Style="{StaticResource Card}" Visibility="Collapsed" Padding="0">
+                    <StackPanel>
+                        <DataGrid x:Name="DgResults" AutoGenerateColumns="False"
+                                  IsReadOnly="True" CanUserAddRows="False"
+                                  MaxHeight="280" Background="#313244" Foreground="#CDD6F4"
+                                  GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#45475A"
+                                  BorderThickness="0" RowBackground="#313244" AlternatingRowBackground="#3B3D50"
+                                  HeadersVisibility="Column" ColumnHeaderHeight="30">
+                            <DataGrid.ColumnHeaderStyle>
+                                <Style TargetType="DataGridColumnHeader">
+                                    <Setter Property="Background" Value="#233A5C"/>
+                                    <Setter Property="Foreground" Value="#89B4FA"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                    <Setter Property="FontSize" Value="11.5"/>
+                                    <Setter Property="Padding" Value="8,4"/>
+                                    <Setter Property="BorderBrush" Value="#45475A"/>
+                                    <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                                </Style>
+                            </DataGrid.ColumnHeaderStyle>
+                            <DataGrid.CellStyle>
+                                <Style TargetType="DataGridCell">
+                                    <Setter Property="Foreground" Value="#CDD6F4"/>
+                                    <Setter Property="FontSize" Value="11.5"/>
+                                    <Setter Property="Padding" Value="6,3"/>
+                                    <Setter Property="BorderThickness" Value="0"/>
+                                </Style>
+                            </DataGrid.CellStyle>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Tầng" Binding="{Binding LevelName}" Width="80"/>
+                                <DataGridTextColumn Header="Loại" Binding="{Binding Category}" Width="60"/>
+                                <DataGridTextColumn Header="Type" Binding="{Binding TypeName}" Width="*"/>
+                                <DataGridTextColumn Header="Rộng" Binding="{Binding WidthMm, StringFormat=N0}" Width="55"/>
+                                <DataGridTextColumn Header="Cao" Binding="{Binding HeightMm, StringFormat=N0}" Width="55"/>
+                                <DataGridTextColumn Header="Dài" Binding="{Binding LengthMm, StringFormat=N0}" Width="60"/>
+                                <DataGridTextColumn Header="DT thô (m²)" Binding="{Binding GrossArea, StringFormat=N2}" Width="75"/>
+                                <DataGridTextColumn Header="Trừ GN" Binding="{Binding DeductionArea, StringFormat=N2}" Width="60"/>
+                                <DataGridTextColumn Header="DT ròng (m²)" Binding="{Binding NetArea, StringFormat=N2}" Width="80">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#A6E3A1"/>
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <!-- Summary bar -->
+                        <Border Background="#1E1E2E" Padding="12,8" CornerRadius="0,0,8,8">
+                            <DockPanel>
+                                <TextBlock x:Name="TxtSummary" FontSize="12" Foreground="{StaticResource TextSecBrush}"/>
+                                <TextBlock x:Name="TxtTotal" DockPanel.Dock="Right" FontSize="14" FontWeight="Bold"
+                                           Foreground="{StaticResource GreenBrush}" HorizontalAlignment="Right"/>
+                            </DockPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ═══ FOOTER ═══ -->
+        <DockPanel Grid.Row="2" Margin="0,14,0,0">
+            <!-- Phải → trái -->
+            <Button x:Name="BtnCancel" Content="Đóng" Style="{StaticResource SecondaryButton}"
+                    DockPanel.Dock="Right" Click="BtnCancel_Click" Margin="8,0,0,0"/>
+            <Button x:Name="BtnDeleteVK" Content="🗑️ Xóa VK" Style="{StaticResource SecondaryButton}"
+                    DockPanel.Dock="Right" Click="BtnDeleteFormwork_Click" Margin="8,0,0,0"/>
+            <Button x:Name="BtnExport" Content="📄 Xuất Excel" Style="{StaticResource SecondaryButton}"
+                    DockPanel.Dock="Right" Click="BtnExport_Click" IsEnabled="False" Margin="8,0,0,0"/>
+            <Button x:Name="BtnSelectCalc" Content="📌 Chọn CK" Style="{StaticResource SecondaryButton}"
+                    DockPanel.Dock="Right" Click="BtnSelectCalc_Click" Margin="8,0,0,0"/>
+
+            <!-- Nút chính -->
+            <Button x:Name="BtnRunAll" Content="▶  Tính &amp; Tạo ván khuôn" Style="{StaticResource PrimaryButton}"
+                    Click="BtnRunAll_Click" FontSize="13" Padding="18,8"/>
+        </DockPanel>
+    </Grid>
+</Window>

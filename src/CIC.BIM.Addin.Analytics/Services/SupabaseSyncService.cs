@@ -120,7 +120,11 @@ public class SupabaseSyncService
                     started_at = s.StartedAt.ToString("o"),
                     ended_at = s.EndedAt?.ToString("o"),
                     total_active_seconds = s.TotalActiveSeconds,
-                    total_idle_seconds = s.TotalIdleSeconds
+                    total_idle_seconds = s.TotalIdleSeconds,
+                    total_elements_created = s.TotalElementsCreated,
+                    total_elements_modified = s.TotalElementsModified,
+                    total_elements_deleted = s.TotalElementsDeleted,
+                    department_name = s.DepartmentName
                 }));
 
                 if (success)

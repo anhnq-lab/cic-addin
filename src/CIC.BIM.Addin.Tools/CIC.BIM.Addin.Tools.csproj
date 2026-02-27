@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>CIC.BIM.Addin.Tools</RootNamespace>
+    <AssemblyName>CIC.BIM.Addin.Tools</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.104.2" />
+  </ItemGroup>
+
+  <!-- System.Net.Http for HttpClient on .NET Framework 4.8 -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+
+</Project>

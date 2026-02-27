@@ -1,0 +1,47 @@
+<Project>
+
+  <!-- Multi-target: Revit 2024 (.NET Framework 4.8) + Revit 2025 (.NET 8) -->
+  <PropertyGroup>
+    <TargetFrameworks>net48;net8.0-windows</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <!-- Revit version mapping based on target framework -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net48'">
+    <RevitVersion>2024</RevitVersion>
+    <RevitApiPath>$(ProgramFiles)\Autodesk\Revit 2024</RevitApiPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
+    <RevitVersion>2025</RevitVersion>
+    <RevitApiPath>$(ProgramFiles)\Autodesk\Revit 2025</RevitApiPath>
+  </PropertyGroup>
+
+  <!-- Output to version-specific folders for easy deployment -->
+  <PropertyGroup>
+    <OutputPath>..\..\bin\$(Configuration)\Revit$(RevitVersion)\</OutputPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <!-- Common Revit API references for all projects -->
+  <ItemGroup>
+    <Reference Include="RevitAPI">
+      <HintPath>$(RevitApiPath)\RevitAPI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="RevitAPIUI">
+      <HintPath>$(RevitApiPath)\RevitAPIUI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Polyfill: enables C# 9 records/init on .NET Framework 4.8 -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <Compile Include="$(MSBuildThisFileDirectory)IsExternalInit.cs" Link="Polyfills\IsExternalInit.cs" />
+  </ItemGroup>
+
+</Project>

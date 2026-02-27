@@ -31,14 +31,157 @@ public class App : IExternalApplication
             // Create custom tab
             application.CreateRibbonTab(TabName);
 
+            // ═══ Panel: Quản lý Dữ liệu ═══
+            var panelData = application.CreateRibbonPanel(TabName, "Quản lý Dữ liệu");
+            var assemblyPath = Assembly.GetExecutingAssembly().Location;
+            var addinDir = Path.GetDirectoryName(assemblyPath)!;
+            var toolsAssemblyPath = Path.Combine(addinDir, "CIC.BIM.Addin.Tools.dll");
+            
+            var btnParamManager = new PushButtonData(
+                "ParamManager",
+                "Quản lý\nTham số",
+                toolsAssemblyPath,
+                "CIC.BIM.Addin.Tools.Commands.ParamManagerCommand"
+            )
+            {
+                ToolTip = "Quản lý tham số cho tất cả đối tượng trong mô hình BIM",
+                LongDescription = "Công cụ quản lý dữ liệu & thông tin cốt lõi của CIC Add-in.\n" +
+                    "Hỗ trợ đa bộ môn: Kết cấu, Kiến trúc, Cơ điện, Đường ống.\n" +
+                    "Gán tham số tự động, chỉnh sửa thủ công, xuất Excel.",
+                LargeImage = LoadIcon("icon_assign_params.png")
+            };
+            panelData.AddItem(btnParamManager);
+
+            // Button 2: Tự động nối cấu kiện
+            var btnAutoJoint = new PushButtonData(
+                "AutoJoint",
+                "Tự động\nNối CK",
+                toolsAssemblyPath,
+                "CIC.BIM.Addin.Tools.Commands.AutoJointCommand"
+            )
+            {
+                ToolTip = "Tự động nối hình học giữa các cấu kiện giao nhau",
+                LongDescription = "Nối (Join) tự động cho cấu kiện kết cấu & kiến trúc.\n" +
+                    "Thiết lập thứ tự ưu tiên: Cột > Dầm > Tường > Sàn.\n" +
+                    "Hỗ trợ Join, UnJoin, Switch Join Order.",
+                LargeImage = LoadIcon("icon_kc.png")
+            };
+            panelData.AddItem(btnAutoJoint);
+
+            // ═══ Panel: Kết cấu ═══
+            var panelKC = application.CreateRibbonPanel(TabName, "Kết cấu");
+
+            // Button: Thống kê Ván khuôn
+            var btnFormwork = new PushButtonData(
+                "Formwork",
+                "Thống kê\nVán khuôn",
+                toolsAssemblyPath,
+                "CIC.BIM.Addin.Tools.Commands.FormworkCommand"
+            )
+            {
+                ToolTip = "Tính diện tích ván khuôn B3.2 và tạo ván khuôn 3D",
+                LongDescription = "Tính diện tích ván khuôn theo nguyên tắc:\n" +
+                    "Dầm (đáy+bên), Cột (bên), Sàn (đáy), Móng (đáy+bên).\n" +
+                    "Tự trừ giao nhau. Tạo DirectShape VK 3D màu nâu.",
+                LargeImage = LoadIcon("icon_formwork.png")
+            };
+            panelKC.AddItem(btnFormwork);
+
+            // Button: Trát tường
+            var btnPlaster = new PushButtonData(
+                "Plaster",
+                "Trát tường\nTheo phòng",
+                toolsAssemblyPath,
+                "CIC.BIM.Addin.Tools.Commands.PlasterCommand"
+            )
+            {
+                ToolTip = "Tạo lớp trát tường hoàn thiện theo phòng",
+                LongDescription = "Chọn phòng → tự động tạo tường trát bao quanh.\n" +
+                    "Hỗ trợ tùy chỉnh Wall Type và Floor Type.",
+                LargeImage = LoadIcon("icon_plaster.png")
+            };
+            panelKC.AddItem(btnPlaster);
+
+            // ═══ Panel: Kiến trúc ═══
+            var panelKT = application.CreateRibbonPanel(TabName, "Kiến trúc");
+
+            // Button: Block từ CAD
+            var btnBlockCad = new PushButtonData(
+                "BlockCad",
+                "Tách Block\ntừ CAD",
+                toolsAssemblyPath,
+                "CIC.BIM.Addin.Tools.Commands.BlockCadCommand"
+            )
+            {
+                ToolTip = "Tách và phân loại block từ bản vẽ CAD link",
+                LongDescription = "Quét file CAD link, liệt kê danh sách block.\n" +
+                    "Hỗ trợ phân loại và xử lý block.",
+                LargeImage = LoadIcon("icon_block_cad.png")
+            };
+            panelKT.AddItem(btnBlockCad);
+
+            // ═══ Panel: Cơ điện (MEP) ═══
+            var panelMEP = application.CreateRibbonPanel(TabName, "Cơ điện");
+
+            // Button: Tạo ống gió từ CAD
+            var btnDuct = new PushButtonData(
+                "DuctFromCad",
+                "Ống gió\ntừ CAD",
+                toolsAssemblyPath,
+                "CIC.BIM.Addin.Tools.Commands.DuctFromCadCommand"
+            )
+            {
+                ToolTip = "Tạo ống gió từ bản vẽ CAD",
+                LongDescription = "Đọc đường dẫn ống gió từ CAD link.\n" +
+                    "Tự động tạo Duct trong Revit.",
+                LargeImage = LoadIcon("icon_duct.png")
+            };
+            panelMEP.AddItem(btnDuct);
+
+            // Button: Kiểm tra độ dốc ống
+            var btnPipeSlope = new PushButtonData(
+                "PipeSlope",
+                "Kiểm tra\nĐộ dốc ống",
+                toolsAssemblyPath,
+                "CIC.BIM.Addin.Tools.Commands.PipeSlopeCommand"
+            )
+            {
+                ToolTip = "Kiểm tra và hiển thị độ dốc ống nước",
+                LongDescription = "Quét hệ thống ống, kiểm tra slope.\n" +
+                    "Cảnh báo ống không đạt độ dốc tối thiểu.",
+                LargeImage = LoadIcon("icon_pipe_slope.png")
+            };
+            panelMEP.AddItem(btnPipeSlope);
+
+            // ═══ Panel: AI Hỗ trợ ═══
+            try
+            {
+                var panelAI = application.CreateRibbonPanel(TabName, "AI Ho tro");
+
+                var btnAIChat = new PushButtonData(
+                    "AIChat",
+                    "AI CIC",
+                    toolsAssemblyPath,
+                    "CIC.BIM.Addin.Tools.Commands.AIChatCommand"
+                )
+                {
+                    ToolTip = "Hoi dap thong tin mo hinh BIM bang AI (Google Gemini)",
+                    LongDescription = "Su dung AI (Google Gemini) de tra loi cau hoi\n" +
+                        "ve thong tin trong mo hinh Revit.\n" +
+                        "Vi du: so luong cau kien, the tich, dien tich, phong...",
+                    LargeImage = LoadIcon("icon_ai_chat.png")
+                };
+                panelAI.AddItem(btnAIChat);
+            }
+            catch (Exception aiEx)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CIC AI Panel] Init failed: {aiEx.Message}");
+            }
+
             // ═══ Panel: Quản lý Vận hành ═══
             var panelFM = application.CreateRibbonPanel(TabName, PanelFM);
 
-            var assemblyPath = Assembly.GetExecutingAssembly().Location;
-            var fmAssemblyPath = Path.Combine(
-                Path.GetDirectoryName(assemblyPath)!,
-                "CIC.BIM.Addin.FacilityMgmt.dll"
-            );
+            var fmAssemblyPath = Path.Combine(addinDir, "CIC.BIM.Addin.FacilityMgmt.dll");
 
             // Button 1: Gán tham số FM
             var btnAssignParams = new PushButtonData(
@@ -51,7 +194,8 @@ public class App : IExternalApplication
                 ToolTip = "Tạo và gán 8 Shared Parameters phục vụ quản lý vận hành vào các MEP categories",
                 LongDescription = "Tự động tạo Shared Parameter file và bind các tham số FM " +
                     "(AssetCode, Category, Location, Manufacturer, Model, MaintenanceCycle, Status, Condition) " +
-                    "vào các categories thiết bị MEP trong model."
+                    "vào các categories thiết bị MEP trong model.",
+                LargeImage = LoadIcon("icon_assign_params.png")
             };
             panelFM.AddItem(btnAssignParams);
 
@@ -67,7 +211,8 @@ public class App : IExternalApplication
                 LongDescription = "Quét toàn bộ thiết bị MEP trong model, tự động:\n" +
                     "• Lấy tên Room/Space → gán vào Location\n" +
                     "• Map Revit Category → FM Category (HVAC, Cơ điện, PCCC...)\n" +
-                    "• Sinh mã tài sản AssetCode theo format chuẩn"
+                    "• Sinh mã tài sản AssetCode theo format chuẩn",
+                LargeImage = LoadIcon("icon_fill_data.png")
             };
             panelFM.AddItem(btnFillData);
 
@@ -82,7 +227,8 @@ public class App : IExternalApplication
                 ToolTip = "Xuất danh sách tài sản/thiết bị ra file Excel",
                 LongDescription = "Export toàn bộ thiết bị MEP có tham số FM ra file Excel, " +
                     "bao gồm: Mã tài sản, Tên, Phân loại, Vị trí, Nhà sản xuất, Model, " +
-                    "Chu kỳ bảo trì, Trạng thái, Tình trạng."
+                    "Chu kỳ bảo trì, Trạng thái, Tình trạng.",
+                LargeImage = LoadIcon("icon_export_report.png")
             };
             panelFM.AddItem(btnExport);
 
@@ -113,7 +259,8 @@ public class App : IExternalApplication
                         ToolTip = "Xem dashboard phân tích hiệu suất làm việc trong Revit",
                         LongDescription = "Hiển thị biểu đồ phân bổ thời gian (Modeling, Editing, Viewing, Idle...),\n" +
                             "phân tích workflow, phát hiện lãng phí quy trình.\n" +
-                            "Chỉ hiển thị cho quản trị viên."
+                            "Chỉ hiển thị cho quản trị viên.",
+                        LargeImage = LoadIcon("icon_dashboard.png")
                     };
                     panelAnalytics.AddItem(btnDashboard);
                 }
@@ -197,7 +344,7 @@ public class App : IExternalApplication
 
                     if (tabThemeType != null)
                     {
-                        dynamic theme = Activator.CreateInstance(tabThemeType)!;
+                        object theme = Activator.CreateInstance(tabThemeType)!;
 
                         // Sky blue colors
                         var skyBlue = new SolidColorBrush(Color.FromRgb(0x00, 0x9F, 0xDB));
@@ -210,20 +357,20 @@ public class App : IExternalApplication
                         lightBlue.Freeze();
 
                         // Try setting all known TabTheme properties
-                        TrySet(() => theme.TabHeaderBackground = skyBlue);
-                        TrySet(() => theme.TabHeaderForeground = white);
-                        TrySet(() => theme.PanelTitleBarBackground = darkBlue);
-                        TrySet(() => theme.PanelBackground = lightBlue);
-                        TrySet(() => theme.RibbonTabBackground = skyBlue);
-                        TrySet(() => theme.ActiveTabBackground = skyBlue);
-                        TrySet(() => theme.InactiveTabBackground = skyBlue);
+                        TrySetProp(theme, "TabHeaderBackground", skyBlue);
+                        TrySetProp(theme, "TabHeaderForeground", white);
+                        TrySetProp(theme, "PanelTitleBarBackground", darkBlue);
+                        TrySetProp(theme, "PanelBackground", lightBlue);
+                        TrySetProp(theme, "RibbonTabBackground", skyBlue);
+                        TrySetProp(theme, "ActiveTabBackground", skyBlue);
+                        TrySetProp(theme, "InactiveTabBackground", skyBlue);
 
                         // Apply using reflection to bypass type checking
                         var themeProp = tab.GetType().GetProperty("Theme",
                             BindingFlags.Public | BindingFlags.Instance);
                         if (themeProp != null)
                         {
-                            themeProp.SetValue(tab, (object)theme);
+                            themeProp.SetValue(tab, theme);
                         }
                     }
                     break;
@@ -236,8 +383,40 @@ public class App : IExternalApplication
         }
     }
 
-    private static void TrySet(Action action)
+    private static void TrySetProp(object instance, string propName, object value)
     {
-        try { action(); } catch { }
+        try
+        {
+            var prop = instance.GetType().GetProperty(propName, BindingFlags.Public | BindingFlags.Instance);
+            if (prop != null && prop.CanWrite)
+            {
+                prop.SetValue(instance, value);
+            }
+        }
+        catch { }
+    }
+
+    private static System.Windows.Media.Imaging.BitmapImage? LoadIcon(string filename)
+    {
+        try
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var resourceName = $"CIC.BIM.Addin.Resources.{filename}";
+            using var stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream == null) return null;
+
+            var bmp = new System.Windows.Media.Imaging.BitmapImage();
+            bmp.BeginInit();
+            bmp.StreamSource = stream;
+            bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+            bmp.EndInit();
+            bmp.Freeze();
+            return bmp;
+        }
+        catch
+        {
+            return null;
+        }
     }
 }
+

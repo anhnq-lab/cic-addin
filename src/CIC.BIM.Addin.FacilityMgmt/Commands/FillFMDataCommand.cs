@@ -207,15 +207,15 @@ public class FillFMDataCommand : IExternalCommand
             if (match.Success)
             {
                 var num = match.Value;
-                if (levelName.Contains("B") || levelName.Contains("basement", StringComparison.OrdinalIgnoreCase)
-                    || levelName.Contains("hầm", StringComparison.OrdinalIgnoreCase))
+                if (levelName.Contains("B") || levelName.IndexOf("basement", StringComparison.OrdinalIgnoreCase) >= 0
+                    || levelName.IndexOf("hầm", StringComparison.OrdinalIgnoreCase) >= 0)
                     levelCode = $"B{num}";
                 else
                     levelCode = $"T{num}";
             }
             else
             {
-                levelCode = levelName.Length <= 4 ? levelName : levelName[..4];
+                levelCode = levelName.Length <= 4 ? levelName : levelName.Substring(0, 4);
             }
         }
 

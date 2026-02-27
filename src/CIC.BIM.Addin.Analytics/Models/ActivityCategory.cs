@@ -20,6 +20,9 @@ public enum ActivityCategory
     /// <summary>File operations: open, save, sync, export</summary>
     FileOps,
 
+    /// <summary>Coordination: clash detection, interference check, linked models</summary>
+    Coordinating,
+
     /// <summary>No user activity detected for > idle threshold</summary>
     Idle,
 

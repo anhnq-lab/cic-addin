@@ -1,0 +1,141 @@
+<Window x:Class="CIC.BIM.Addin.Tools.Views.DuctFromCadWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="💨 Ống gió từ line CAD — B1.24"
+        Width="700" Height="660" ResizeMode="CanResize"
+        WindowStartupLocation="CenterScreen"
+        Background="#1E1E2E" Foreground="#CDD6F4">
+
+    <Window.Resources>
+        <ResourceDictionary Source="../Themes/ToolStyles.xaml"/>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ═══ HEADER ═══ -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <DockPanel>
+                <Border Style="{StaticResource DeptBadge}" Background="#3D2E1A" DockPanel.Dock="Right">
+                    <TextBlock Text="MEP — Cơ điện" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AmberBrush}"/>
+                </Border>
+                <TextBlock Text="💨 Ống gió từ line CAD" FontSize="18" FontWeight="Bold"/>
+            </DockPanel>
+            <TextBlock Text="B1.24 — Duct from CAD Line" FontSize="11"
+                       Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0"/>
+            <Border Height="2" Background="{StaticResource AmberBrush}" Margin="0,10,0,0" Opacity="0.4"/>
+        </StackPanel>
+
+        <!-- ═══ CONTENT ═══ -->
+        <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Border Style="{StaticResource Card}" Grid.Row="0">
+                <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource TextSecBrush}"
+                           Text="Dựng ống gió (Duct) tự động từ Line trong bản vẽ CAD link. Mapping Line Type/Layer → Duct Type + Size."/>
+            </Border>
+
+            <!-- Parameters -->
+            <Border Style="{StaticResource Card}" Grid.Row="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,8,8">
+                        <TextBlock Text="Hình dạng ống" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox x:Name="CboShape" Style="{StaticResource DarkComboBox}" SelectedIndex="0">
+                            <ComboBoxItem Content="Rectangular (chữ nhật)"/>
+                            <ComboBoxItem Content="Round (tròn)"/>
+                            <ComboBoxItem Content="Oval"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="8,0,8,8">
+                        <TextBlock Text="Cao độ (mm)" Style="{StaticResource FieldLabel}"/>
+                        <TextBox x:Name="TxtElevation" Text="3000" Style="{StaticResource DarkTextBox}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Row="0" Grid.Column="2" Margin="8,0,0,8">
+                        <TextBlock Text="Mốc tính cao độ" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox x:Name="CboElevRef" Style="{StaticResource DarkComboBox}" SelectedIndex="0">
+                            <ComboBoxItem Content="BOD (Bottom of Duct)"/>
+                            <ComboBoxItem Content="CL (Center Line)"/>
+                            <ComboBoxItem Content="TOD (Top of Duct)"/>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,8,0">
+                        <TextBlock Text="System Type" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox x:Name="CboSystem" Style="{StaticResource DarkComboBox}" SelectedIndex="0">
+                            <ComboBoxItem Content="Supply Air (SA)"/>
+                            <ComboBoxItem Content="Return Air (RA)"/>
+                            <ComboBoxItem Content="Exhaust Air (EA)"/>
+                            <ComboBoxItem Content="Fresh Air (FA)"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="8,0,0,0">
+                        <TextBlock Text="Tùy chọn" Style="{StaticResource FieldLabel}"/>
+                        <CheckBox x:Name="ChkAutoFitting" Content="🔗 Tự nối Fitting (co, tê, chuyển tiếp)"
+                                  Style="{StaticResource DarkCheckBox}" IsChecked="True"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Mapping DataGrid -->
+            <Border Style="{StaticResource Card}" Grid.Row="2">
+                <DockPanel>
+                    <TextBlock Text="MAPPING: LINE CAD → DUCT TYPE + SIZE" Style="{StaticResource SectionHeader}"
+                               DockPanel.Dock="Top"/>
+                    <DataGrid x:Name="MappingGrid" AutoGenerateColumns="False"
+                              Background="#313244" Foreground="#CDD6F4"
+                              RowBackground="#313244" AlternatingRowBackground="#3B3D50"
+                              GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#45475A"
+                              BorderThickness="0" CanUserAddRows="True"
+                              HeadersVisibility="Column" FontSize="12">
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="Background" Value="#45475A"/>
+                                <Setter Property="Foreground" Value="#A6ADC8"/>
+                                <Setter Property="Padding" Value="8,6"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="FontSize" Value="11"/>
+                            </Style>
+                        </DataGrid.ColumnHeaderStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Line Type / Layer (CAD)" Binding="{Binding LineTypeOrLayer}" Width="*"/>
+                            <DataGridTextColumn Header="Duct Type (Revit)" Binding="{Binding DuctType}" Width="*"/>
+                            <DataGridTextColumn Header="W (mm)" Binding="{Binding Width}" Width="70"/>
+                            <DataGridTextColumn Header="H (mm)" Binding="{Binding Height}" Width="70"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </Border>
+        </Grid>
+
+        <!-- ═══ FOOTER ═══ -->
+        <DockPanel Grid.Row="2" Margin="0,16,0,0">
+            <Button x:Name="BtnCancel" Content="Hủy" Style="{StaticResource SecondaryButton}"
+                    DockPanel.Dock="Right" Click="BtnCancel_Click" Margin="8,0,0,0"/>
+            <Button x:Name="BtnRun" Content="▶ Tạo Duct" Style="{StaticResource PrimaryButton}"
+                    Click="BtnRun_Click">
+                <Button.Resources>
+                    <SolidColorBrush x:Key="BlueBrush" Color="#FAB387"/>
+                </Button.Resources>
+            </Button>
+        </DockPanel>
+    </Grid>
+</Window>

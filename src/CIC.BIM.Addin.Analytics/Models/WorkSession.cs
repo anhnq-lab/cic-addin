@@ -16,4 +16,12 @@ public class WorkSession
     public int TotalActiveSeconds { get; set; }
     public int TotalIdleSeconds { get; set; }
     public bool SyncedToCloud { get; set; }
+
+    // ═══ Element productivity tracking ═══
+    public int TotalElementsCreated { get; set; }
+    public int TotalElementsModified { get; set; }
+    public int TotalElementsDeleted { get; set; }
+
+    /// <summary>Department from user_profile.json (MEP, Architecture, Structure)</summary>
+    public string? DepartmentName { get; set; }
 }

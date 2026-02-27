@@ -1,3 +1,5 @@
+using SysProcess = System.Diagnostics.Process;
+using System.Runtime.InteropServices;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Events;
 using Autodesk.Revit.UI;
@@ -19,14 +21,23 @@ namespace CIC.BIM.Addin.Analytics.Services;
 /// </summary>
 public class ActivityTracker : IDisposable
 {
+    // ═══ P/Invoke for foreground detection ═══
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
     private readonly LocalStore _store;
     private readonly WorkflowAnalyzer _workflowAnalyzer;
     private UIControlledApplication? _uiApp;
+    private UserProfile _userProfile;
 
     // Current session
     private WorkSession? _currentSession;
     private string? _activeViewName;
     private string? _activeViewType;
+    private bool _revitInForeground = true;
 
     // ═══ TIME SLOT MODEL ═══
     // Instead of fixed 30s per event, we track the "current activity slot"
@@ -45,6 +56,7 @@ public class ActivityTracker : IDisposable
     private DateTime _lastActivityTime = DateTime.UtcNow;
     private DateTime _lastFlushTime = DateTime.UtcNow;
     private DateTime _lastSyncTime = DateTime.UtcNow;
+    private DateTime _lastDocChangedTime = DateTime.MinValue;
     private bool _isIdle;
 
     // Session accumulators
@@ -64,6 +76,7 @@ public class ActivityTracker : IDisposable
     {
         _store = new LocalStore();
         _workflowAnalyzer = new WorkflowAnalyzer();
+        _userProfile = UserProfile.Load();
     }
 
     /// <summary>
@@ -252,7 +265,8 @@ public class ActivityTracker : IDisposable
             {
                 ProjectName = doc.Title,
                 FilePath = doc.PathName,
-                RevitVersion = doc.Application.VersionNumber
+                RevitVersion = doc.Application.VersionNumber,
+                DepartmentName = _userProfile.Department
             };
             _store.CreateSession(_currentSession);
             _sessionActiveSeconds = 0;
@@ -321,22 +335,50 @@ public class ActivityTracker : IDisposable
         {
             if (_currentSession == null) return;
 
+            var now = DateTime.UtcNow;
+
+            // Throttle burst events: if same-category event fires within 500ms,
+            // just enrich the current slot without running full classification
+            var msSinceLast = (now - _lastDocChangedTime).TotalMilliseconds;
+            _lastDocChangedTime = now;
+
+            if (msSinceLast < 500)
+            {
+                // Quick path: count elements and merge transaction names only
+                var addedIds = e.GetAddedElementIds();
+                var modifiedIds = e.GetModifiedElementIds();
+                var deletedIds = e.GetDeletedElementIds();
+                var totalElements = addedIds.Count + modifiedIds.Count + deletedIds.Count;
+                var txnString = string.Join(", ", e.GetTransactionNames());
+                EnrichCurrentSlot(totalElements, txnString);
+                // Accumulate element counts on session
+                AccumulateElementCounts(addedIds.Count, modifiedIds.Count, deletedIds.Count);
+                _lastActivityTime = now;
+                _isIdle = false;
+                return;
+            }
+
+            var addedCount = e.GetAddedElementIds().Count;
+            var modifiedCount = e.GetModifiedElementIds().Count;
+            var deletedCount = e.GetDeletedElementIds().Count;
+
             var evt = EventClassifier.ClassifyDocumentChanged(
                 e, _currentSession.Id, _activeViewName, _activeViewType);
 
             if (evt.Category == _currentSlotCategory)
             {
-                // Same category — just enrich the current slot (don't transition)
                 EnrichCurrentSlot(evt.ElementCount, evt.TransactionNames);
             }
             else
             {
-                // Different category — close previous slot, start new one
                 TransitionToActivity(evt.Category, evt.SubCategory,
                     evt.ElementCount, evt.TransactionNames);
             }
 
-            _lastActivityTime = DateTime.UtcNow;
+            // Accumulate element counts on session
+            AccumulateElementCounts(addedCount, modifiedCount, deletedCount);
+
+            _lastActivityTime = now;
             _isIdle = false;
         }
         catch { }
@@ -384,21 +426,25 @@ public class ActivityTracker : IDisposable
         {
             var now = DateTime.UtcNow;
 
+            // Check if Revit is in foreground
+            _revitInForeground = IsRevitForeground();
+
             // Accumulate session time
             var tickDuration = (int)(now - _lastTickTime).TotalSeconds;
             _lastTickTime = now;
 
             if (_currentSession != null && tickDuration > 0 && tickDuration < 60)
             {
-                if (_isIdle)
+                if (_isIdle || !_revitInForeground)
                     _sessionIdleSeconds += tickDuration;
                 else
                     _sessionActiveSeconds += tickDuration;
             }
 
-            // Check idle threshold
+            // Check idle threshold (also consider background as idle)
             var idleSeconds = (now - _lastActivityTime).TotalSeconds;
-            if (!_isIdle && idleSeconds > IdleThresholdSeconds)
+            var effectivelyIdle = idleSeconds > IdleThresholdSeconds || (!_revitInForeground && idleSeconds > 30);
+            if (!_isIdle && effectivelyIdle)
             {
                 _isIdle = true;
                 // Transition to idle — this closes the previous active slot
@@ -441,7 +487,7 @@ public class ActivityTracker : IDisposable
         if (_currentSession == null) return;
 
         var elapsed = (int)(now - _currentSlotStart).TotalSeconds;
-        if (elapsed < 2) return; // Don't snapshot tiny durations
+        if (elapsed < 5) return; // Don't snapshot until at least 5 seconds
 
         elapsed = Math.Min(elapsed, MaxSlotSeconds);
 
@@ -516,8 +562,38 @@ public class ActivityTracker : IDisposable
                 remaining.Value.DurationSeconds);
         }
 
-        _store.EndSession(_currentSession.Id, _sessionActiveSeconds, _sessionIdleSeconds);
+        _store.EndSession(_currentSession.Id, _sessionActiveSeconds, _sessionIdleSeconds,
+            _currentSession.TotalElementsCreated, _currentSession.TotalElementsModified,
+            _currentSession.TotalElementsDeleted);
         _currentSession = null;
+    }
+
+    /// <summary>
+    /// Accumulate element counts on the current session for productivity tracking.
+    /// </summary>
+    private void AccumulateElementCounts(int added, int modified, int deleted)
+    {
+        if (_currentSession == null) return;
+        _currentSession.TotalElementsCreated += added;
+        _currentSession.TotalElementsModified += modified;
+        _currentSession.TotalElementsDeleted += deleted;
+    }
+
+    /// <summary>
+    /// Check if Revit is the foreground window.
+    /// If Revit is minimized or user switched to another app → not foreground → count as idle.
+    /// </summary>
+    private static bool IsRevitForeground()
+    {
+        try
+        {
+            var foregroundWindow = GetForegroundWindow();
+            if (foregroundWindow == IntPtr.Zero) return false;
+
+            GetWindowThreadProcessId(foregroundWindow, out var foregroundPid);
+            return foregroundPid == (uint)SysProcess.GetCurrentProcess().Id;
+        }
+        catch { return true; } // Default to foreground on error
     }
 
     /// <summary>

@@ -103,6 +103,14 @@ public static class EventClassifier
             category = ActivityCategory.Modeling;
             subCategory = InferSubCategoryFromTransaction(txnString);
         }
+        // Check for coordination-related transactions
+        var txnLower = txnString.ToLowerInvariant();
+        if (txnLower.Contains("clash") || txnLower.Contains("interference") ||
+            txnLower.Contains("copy/monitor") || txnLower.Contains("coordination") ||
+            txnLower.Contains("link") || txnLower.Contains("navisworks"))
+        {
+            category = ActivityCategory.Coordinating;
+        }
 
         return new ActivityEvent
         {
@@ -127,14 +135,20 @@ public static class EventClassifier
         int modelCount = 0;
         var subCategories = new Dictionary<string, int>();
 
-        foreach (var id in elementIds)
+        // Performance guard: sample first 50 elements for large operations
+        // (e.g. "Select All → Move" can touch thousands of elements)
+        var idsToAnalyze = elementIds.Count > 50
+            ? elementIds.Take(50)
+            : (IEnumerable<ElementId>)elementIds;
+
+        foreach (var id in idsToAnalyze)
         {
             try
             {
                 var element = doc.GetElement(id);
                 if (element == null) continue;
 
-                var catId = element.Category?.Id.IntegerValue ?? 0;
+                var catId = GetCategoryIdValue(element);
 
                 if (AnnotationCategoryIds.Contains(catId))
                 {
@@ -148,7 +162,7 @@ public static class EventClassifier
                 // Track sub-category frequency
                 if (element.Category != null)
                 {
-                    var builtIn = (BuiltInCategory)element.Category.Id.IntegerValue;
+                    var builtIn = (BuiltInCategory)catId;
                     if (SubCategoryMap.TryGetValue(builtIn, out var sub))
                     {
                         subCategories[sub] = subCategories.GetValueOrDefault(sub, 0) + 1;
@@ -167,6 +181,20 @@ public static class EventClassifier
             : null;
 
         return (isAnnotation, topSub);
+    }
+
+    /// <summary>
+    /// Get category ID value compatible with both Revit 2024 (IntegerValue) and 2025+ (Value)
+    /// </summary>
+    private static int GetCategoryIdValue(Element element)
+    {
+#if NET8_0_OR_GREATER
+        // Revit 2025+ uses .Value (long), cast to int for BuiltInCategory
+        return (int)(element.Category?.Id.Value ?? 0);
+#else
+        // Revit 2024 uses .IntegerValue
+        return element.Category?.Id.IntegerValue ?? 0;
+#endif
     }
 
     /// <summary>

@@ -1,44 +1,26 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <UseWPF>true</UseWPF>
     <RootNamespace>CIC.BIM.Addin.Analytics</RootNamespace>
     <AssemblyName>CIC.BIM.Addin.Analytics</AssemblyName>
-    
-    <OutputPath>..\..\bin\$(Configuration)\</OutputPath>
-    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
-  <!-- Revit 2025 API References -->
-  <PropertyGroup>
-    <RevitVersion>2025</RevitVersion>
-    <RevitApiPath>$(ProgramFiles)\Autodesk\Revit $(RevitVersion)</RevitApiPath>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <Reference Include="RevitAPI">
-      <HintPath>$(RevitApiPath)\RevitAPI.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="RevitAPIUI">
-      <HintPath>$(RevitApiPath)\RevitAPIUI.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-  </ItemGroup>
-
-  <!-- SQLite for local storage -->
-  <ItemGroup>
+  <!-- SQLite for local storage — version-conditional for framework compat -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.0" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.0" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+    <Reference Include="System.Net.Http" />
   </ItemGroup>
 
   <!-- WinForms for dialogs -->
-  <ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
     <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <Reference Include="System.Windows.Forms" />
   </ItemGroup>
 
 </Project>

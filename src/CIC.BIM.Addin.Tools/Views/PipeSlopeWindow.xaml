@@ -1,0 +1,106 @@
+<Window x:Class="CIC.BIM.Addin.Tools.Views.PipeSlopeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="📐 Thay đổi độ dốc ống — B1.28"
+        Width="480" Height="500" ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        Background="#1E1E2E" Foreground="#CDD6F4">
+
+    <Window.Resources>
+        <ResourceDictionary Source="../Themes/ToolStyles.xaml"/>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ═══ HEADER ═══ -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <DockPanel>
+                <Border Style="{StaticResource DeptBadge}" Background="#3D2E1A" DockPanel.Dock="Right">
+                    <TextBlock Text="MEP — Cơ điện" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AmberBrush}"/>
+                </Border>
+                <TextBlock Text="📐 Thay đổi độ dốc ống" FontSize="18" FontWeight="Bold"/>
+            </DockPanel>
+            <TextBlock Text="B1.28 — Pipe Slope Adjustment" FontSize="11"
+                       Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0"/>
+            <Border Height="2" Background="{StaticResource AmberBrush}" Margin="0,10,0,0" Opacity="0.4"/>
+        </StackPanel>
+
+        <!-- ═══ CONTENT ═══ -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+
+                <Border Style="{StaticResource Card}">
+                    <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource TextSecBrush}"
+                               Text="Nhập giá trị độ dốc → ống thoát nước và các fitting (co, tê) tự động xoay theo góc tương ứng. Cao độ được cập nhật liên hoàn."/>
+                </Border>
+
+                <!-- Giá trị dốc -->
+                <TextBlock Text="GIÁ TRỊ ĐỘ DỐC" Style="{StaticResource SectionHeader}"/>
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                            <TextBlock Text="Độ dốc" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="TxtSlope" Text="1" Style="{StaticResource DarkTextBox}" FontSize="20" FontWeight="Bold"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Bottom">
+                            <TextBlock Text="Đơn vị" Style="{StaticResource FieldLabel}"/>
+                            <ComboBox x:Name="CboSlopeUnit" Style="{StaticResource DarkComboBox}" SelectedIndex="0" Width="130">
+                                <ComboBoxItem Content="% (phần trăm)"/>
+                                <ComboBoxItem Content="‰ (phần nghìn)"/>
+                                <ComboBoxItem Content="1:x (tỉ lệ)"/>
+                            </ComboBox>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Điểm cố định -->
+                <TextBlock Text="ĐIỂM CỐ ĐỊNH" Style="{StaticResource SectionHeader}"/>
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="Chọn đầu nào giữ nguyên cao độ:" FontSize="12"
+                                   Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,8"/>
+                        <RadioButton x:Name="RdoUpstream" Content="⬆️ Upstream (đầu cao — giữ nguyên)"
+                                     Foreground="{StaticResource TextBrush}" FontSize="12.5" Margin="0,3" IsChecked="True"/>
+                        <RadioButton x:Name="RdoDownstream" Content="⬇️ Downstream (đầu thấp — giữ nguyên)"
+                                     Foreground="{StaticResource TextBrush}" FontSize="12.5" Margin="0,3"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Tùy chọn -->
+                <TextBlock Text="TÙY CHỌN" Style="{StaticResource SectionHeader}"/>
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <CheckBox x:Name="ChkAutoRotateFitting" Content="🔄 Tự xoay Fitting (co, tê) theo góc dốc"
+                                  Style="{StaticResource DarkCheckBox}" IsChecked="True"/>
+                        <CheckBox x:Name="ChkUpdateElevation" Content="📏 Tự cập nhật cao độ liên hoàn (các đoạn kế tiếp)"
+                                  Style="{StaticResource DarkCheckBox}" IsChecked="True"/>
+                        <CheckBox x:Name="ChkCheckClash" Content="⚠️ Kiểm tra Clash sau khi áp dốc"
+                                  Style="{StaticResource DarkCheckBox}"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ═══ FOOTER ═══ -->
+        <DockPanel Grid.Row="2" Margin="0,16,0,0">
+            <Button x:Name="BtnCancel" Content="Hủy" Style="{StaticResource SecondaryButton}"
+                    DockPanel.Dock="Right" Click="BtnCancel_Click" Margin="8,0,0,0"/>
+            <Button x:Name="BtnSelect" Content="📌 Chọn ống → Áp dốc" Style="{StaticResource PrimaryButton}"
+                    Click="BtnSelect_Click">
+                <Button.Resources>
+                    <SolidColorBrush x:Key="BlueBrush" Color="#FAB387"/>
+                </Button.Resources>
+            </Button>
+        </DockPanel>
+    </Grid>
+</Window>

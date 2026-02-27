@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CIC BIM Addin — Tool Dashboard</title>
+  <meta name="description" content="Dashboard quản lý 5 tools Revit Add-in ưu tiên phát triển cho CIC BIM.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- ========== SIDEBAR ========== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 32 32" fill="none"><rect x="2" y="6" width="12" height="20" rx="2" fill="currentColor" opacity=".7"/><rect x="18" y="2" width="12" height="28" rx="2" fill="currentColor"/></svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">CIC BIM</span>
+        <span class="brand-sub">Addin Tools</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-section="dashboard">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span>Dashboard</span>
+      </a>
+      <div class="nav-divider"></div>
+      <span class="nav-label">BỘ MÔN</span>
+      <a href="#" class="nav-item" data-section="kc">
+        <span class="dept-dot dept-kc"></span>
+        <span>KC — Kết cấu</span>
+      </a>
+      <a href="#" class="nav-item" data-section="kt">
+        <span class="dept-dot dept-kt"></span>
+        <span>KT — Kiến trúc</span>
+      </a>
+      <a href="#" class="nav-item" data-section="mep">
+        <span class="dept-dot dept-mep"></span>
+        <span>MEP — Cơ điện</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="version-badge">v1.0 — 5 Tools</div>
+    </div>
+  </aside>
+
+  <!-- ========== MAIN CONTENT ========== -->
+  <main class="main" id="main">
+    <!-- Top Bar -->
+    <header class="topbar">
+      <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="topbar-title">
+        <h1 id="pageTitle">Dashboard</h1>
+        <p id="pageSubtitle">5 tools ưu tiên phát triển — nhóm theo bộ môn</p>
+      </div>
+      <div class="topbar-actions">
+        <div class="status-chip">
+          <span class="pulse"></span>
+          <span>Đang phát triển</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Stats Row -->
+    <section class="stats-row" id="statsRow">
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--total">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">5</span>
+          <span class="stat-label">Tổng Tools</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--kc">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h20M5 20V8l7-5 7 5v12"/><path d="M9 20v-5h6v5"/></svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">1</span>
+          <span class="stat-label">KC — Kết cấu</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--kt">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">1</span>
+          <span class="stat-label">KT — Kiến trúc</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--mep">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">3</span>
+          <span class="stat-label">MEP — Cơ điện</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tool Cards Container -->
+    <div id="toolCardsContainer"></div>
+  </main>
+
+  <!-- ========== TOOL DETAIL MODAL ========== -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="modal">
+      <button class="modal-close" id="modalClose" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="modal-content" id="modalContent"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
