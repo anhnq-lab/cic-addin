@@ -22,6 +22,7 @@ public partial class PlasterWindow : Window
     private List<FloorType> _floorTypes = new();
     private bool _isFilteringWall;
     private bool _isFilteringFloor;
+    private bool _isFilteringColumn;
 
     // Selected options
     public RoomSelectionMethod SelectionMethod
@@ -38,9 +39,15 @@ public partial class PlasterWindow : Window
     
     public string ParameterValue => CboParameterValue?.Text ?? "";
 
-    // Selected options
+    // Wall plaster
+    public bool CreateWallPlaster => ChkWallPlaster.IsChecked == true;
     public ElementId SelectedWallTypeId =>
         CboWallType.SelectedItem is WallType wt ? wt.Id : ElementId.InvalidElementId;
+
+    // Column plaster
+    public bool CreateColumnPlaster => ChkColumnPlaster.IsChecked == true;
+    public ElementId SelectedColumnTypeId =>
+        CboColumnType.SelectedItem is WallType ct ? ct.Id : ElementId.InvalidElementId;
 
     public ElementId SelectedFloorTypeId =>
         CboFloorType.SelectedItem is FloorType ft ? ft.Id : ElementId.InvalidElementId;
@@ -52,6 +59,8 @@ public partial class PlasterWindow : Window
 
     public bool JoinWithOriginal => ChkJoinGeometry.IsChecked == true;
 
+    public bool AutoRoomBounding => ChkAutoRoomBounding.IsChecked == true;
+
     public bool CreateFloorFinish => ChkCreateFloor.IsChecked == true;
 
     public double FloorOffsetMm => ParseMm(TxtFloorOffset.Text, 0);
@@ -61,14 +70,9 @@ public partial class PlasterWindow : Window
         _doc = doc;
         InitializeComponent();
         LoadWallTypes();
+        LoadColumnTypes();
         LoadFloorTypes();
         LoadRoomParameters();
-
-        // Subscribe to text changes for search/filter
-        CboWallType.AddHandler(TextBoxBase.TextChangedEvent,
-            new TextChangedEventHandler(CboWallType_TextChanged));
-        CboFloorType.AddHandler(TextBoxBase.TextChangedEvent,
-            new TextChangedEventHandler(CboFloorType_TextChanged));
     }
 
     private void LoadWallTypes()
@@ -81,19 +85,26 @@ public partial class PlasterWindow : Window
 
         CboWallType.ItemsSource = _wallTypes;
 
-        // Try to preselect a thin wall type (name contains "finish", "hoàn thiện")
-        // Skip items starting with "_" like "_Not Defined"
         var preferred = _wallTypes.FirstOrDefault(w =>
             !w.Name.StartsWith("_") && (
             w.Name.IndexOf("finish", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
             w.Name.IndexOf("hoan thien", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
             w.Name.IndexOf("hoàn thiện", System.StringComparison.OrdinalIgnoreCase) >= 0));
 
-        // If no preferred, pick first non-underscore type
         if (preferred == null)
             preferred = _wallTypes.FirstOrDefault(w => !w.Name.StartsWith("_"));
 
         CboWallType.SelectedItem = preferred ?? _wallTypes.FirstOrDefault();
+    }
+
+    private void LoadColumnTypes()
+    {
+        // Share same wall types list, separate combobox
+        CboColumnType.ItemsSource = _wallTypes;
+
+        // Try to find same preferred type as wall
+        var preferred = CboWallType.SelectedItem ?? _wallTypes.FirstOrDefault(w => !w.Name.StartsWith("_"));
+        CboColumnType.SelectedItem = preferred ?? _wallTypes.FirstOrDefault();
     }
 
     private void LoadFloorTypes()
@@ -187,62 +198,79 @@ public partial class PlasterWindow : Window
             : System.Windows.Visibility.Collapsed;
     }
 
-    private void CboWallType_TextChanged(object sender, TextChangedEventArgs e)
+    private void TxtWallSearch_TextChanged(object sender, TextChangedEventArgs e)
     {
-        if (_isFilteringWall) return;
-        _isFilteringWall = true;
-        try
+        var text = TxtWallSearch.Text;
+        if (string.IsNullOrWhiteSpace(text))
         {
-            var text = CboWallType.Text;
-            if (string.IsNullOrWhiteSpace(text))
-            {
-                CboWallType.ItemsSource = _wallTypes;
-            }
-            else
-            {
-                CboWallType.ItemsSource = _wallTypes
-                    .Where(w => w.Name.IndexOf(text, System.StringComparison.OrdinalIgnoreCase) >= 0)
-                    .ToList();
-            }
-            CboWallType.IsDropDownOpen = true;
-            CboWallType.Text = text;
-            // Move caret to end of text
-            var tb = CboWallType.Template.FindName("PART_EditableTextBox", CboWallType) as TextBox;
-            if (tb != null) tb.CaretIndex = tb.Text.Length;
+            CboWallType.ItemsSource = _wallTypes;
         }
-        finally { _isFilteringWall = false; }
+        else
+        {
+            var filtered = _wallTypes
+                .Where(w => w.Name.IndexOf(text, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                .ToList();
+            CboWallType.ItemsSource = filtered;
+        }
+
+        // Auto-select first item if any
+        if (CboWallType.Items.Count > 0)
+            CboWallType.SelectedIndex = 0;
     }
 
-    private void CboFloorType_TextChanged(object sender, TextChangedEventArgs e)
+    private void TxtFloorSearch_TextChanged(object sender, TextChangedEventArgs e)
     {
-        if (_isFilteringFloor) return;
-        _isFilteringFloor = true;
-        try
+        var text = TxtFloorSearch.Text;
+        if (string.IsNullOrWhiteSpace(text))
         {
-            var text = CboFloorType.Text;
-            if (string.IsNullOrWhiteSpace(text))
-            {
-                CboFloorType.ItemsSource = _floorTypes;
-            }
-            else
-            {
-                CboFloorType.ItemsSource = _floorTypes
-                    .Where(f => f.Name.IndexOf(text, System.StringComparison.OrdinalIgnoreCase) >= 0)
-                    .ToList();
-            }
-            CboFloorType.IsDropDownOpen = true;
-            CboFloorType.Text = text;
-            var tb = CboFloorType.Template.FindName("PART_EditableTextBox", CboFloorType) as TextBox;
-            if (tb != null) tb.CaretIndex = tb.Text.Length;
+            CboFloorType.ItemsSource = _floorTypes;
         }
-        finally { _isFilteringFloor = false; }
+        else
+        {
+            var filtered = _floorTypes
+                .Where(f => f.Name.IndexOf(text, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                .ToList();
+            CboFloorType.ItemsSource = filtered;
+        }
+
+        if (CboFloorType.Items.Count > 0)
+            CboFloorType.SelectedIndex = 0;
+    }
+
+    private void TxtColumnSearch_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        var text = TxtColumnSearch.Text;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            CboColumnType.ItemsSource = _wallTypes;
+        }
+        else
+        {
+            var filtered = _wallTypes
+                .Where(w => w.Name.IndexOf(text, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                .ToList();
+            CboColumnType.ItemsSource = filtered;
+        }
+
+        if (CboColumnType.Items.Count > 0)
+            CboColumnType.SelectedIndex = 0;
     }
 
     private void BtnRun_Click(object sender, RoutedEventArgs e)
     {
-        if (CboWallType.SelectedItem == null)
+        bool wallOk = !CreateWallPlaster || CboWallType.SelectedItem != null;
+        bool colOk = !CreateColumnPlaster || CboColumnType.SelectedItem != null;
+
+        if (!wallOk || !colOk)
         {
-            MessageBox.Show("Vui long chon Wall Type!", "Thieu thong tin",
+            MessageBox.Show("Vui lòng chọn Wall Type cho các loại trát đã bật!", "Thiếu thông tin",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        if (!CreateWallPlaster && !CreateColumnPlaster && !CreateFloorFinish)
+        {
+            MessageBox.Show("Vui lòng chọn ít nhất một loại trát!", "Thiếu thông tin",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }

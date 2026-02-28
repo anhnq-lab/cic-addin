@@ -131,17 +131,25 @@ public class FormworkExportService
     /// </summary>
     public static string ExportToExcel(FormworkResult result, string projectName, string? savePath = null)
     {
-        string filePath;
-        if (!string.IsNullOrEmpty(savePath))
+        // Nếu không truyền path → dùng SaveFileDialog
+        if (string.IsNullOrEmpty(savePath))
         {
-            filePath = savePath;
-        }
-        else
-        {
-            var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-            var fileName = $"VanKhuon_B3.2_{projectName}_{timestamp}.xlsx";
-            filePath = Path.Combine(desktopPath, fileName);
+            var defaultName = $"VanKhuon_B3.2_{projectName}_{timestamp}.xlsx";
+
+            var dlg = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = "Lưu file Thống kê Ván khuôn",
+                FileName = defaultName,
+                DefaultExt = ".xlsx",
+                Filter = "Excel Files (*.xlsx)|*.xlsx|All Files (*.*)|*.*",
+                InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
+            };
+
+            if (dlg.ShowDialog() != true)
+                return string.Empty; // User hủy
+
+            savePath = dlg.FileName;
         }
 
         using var workbook = new XLWorkbook();
@@ -154,37 +162,55 @@ public class FormworkExportService
         var wsDetail = workbook.AddWorksheet("Chi tiết");
         CreateDetailSheet(wsDetail, result);
 
-        workbook.SaveAs(filePath);
-        return filePath;
+        workbook.SaveAs(savePath);
+        return savePath;
     }
+
+    // ═══ COLOR CONSTANTS ═══
+    private static readonly XLColor HeaderBg = XLColor.FromHtml("#1F4E79");
+    private static readonly XLColor HeaderFg = XLColor.White;
+    private static readonly XLColor AltRowBg = XLColor.FromHtml("#D6E4F0");
+    private static readonly XLColor TotalBg = XLColor.FromHtml("#2E75B6");
+    private static readonly XLColor TotalFg = XLColor.White;
+    private static readonly XLColor BorderColor = XLColor.FromHtml("#8DB4E2");
 
     private static void CreateSummarySheet(IXLWorksheet ws, FormworkResult result, string projectName)
     {
-        // Header
+        // ════ TITLE ════
         ws.Cell(1, 1).Value = "BẢNG THỐNG KÊ VÁN KHUÔN — B3.2";
         ws.Range("A1:G1").Merge().Style
-            .Font.SetBold(true).Font.SetFontSize(14)
+            .Font.SetBold(true)
+            .Font.SetFontSize(16)
+            .Font.SetFontColor(HeaderBg)
             .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
 
         ws.Cell(2, 1).Value = $"Dự án: {projectName}";
-        ws.Cell(3, 1).Value = $"Ngày: {DateTime.Now:dd/MM/yyyy HH:mm}";
+        ws.Cell(2, 1).Style.Font.SetBold(true).Font.SetFontSize(11);
 
-        // Summary table header
+        ws.Cell(3, 1).Value = $"Ngày xuất: {DateTime.Now:dd/MM/yyyy HH:mm}";
+        ws.Cell(3, 1).Style.Font.SetItalic(true).Font.SetFontColor(XLColor.Gray);
+
+        // ════ TABLE HEADER ════
         int row = 5;
         var headers = new[] { "STT", "Tầng", "Loại CK", "Số lượng",
                              "DT thô (m²)", "Trừ GN (m²)", "DT ròng (m²)" };
         for (int c = 0; c < headers.Length; c++)
         {
-            ws.Cell(row, c + 1).Value = headers[c];
+            var cell = ws.Cell(row, c + 1);
+            cell.Value = headers[c];
+            cell.Style
+                .Font.SetBold(true)
+                .Font.SetFontSize(11)
+                .Font.SetFontColor(HeaderFg)
+                .Fill.SetBackgroundColor(HeaderBg)
+                .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center)
+                .Alignment.SetVertical(XLAlignmentVerticalValues.Center)
+                .Border.SetOutsideBorder(XLBorderStyleValues.Thin)
+                .Border.SetOutsideBorderColor(BorderColor);
         }
-        ws.Range(row, 1, row, headers.Length).Style
-            .Font.SetBold(true)
-            .Fill.SetBackgroundColor(XLColor.FromHtml("#2B579A"))
-            .Font.SetFontColor(XLColor.White)
-            .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center)
-            .Border.SetOutsideBorder(XLBorderStyleValues.Thin);
+        ws.Row(row).Height = 24;
 
-        // Group by Level, then Category
+        // ════ DATA ROWS ════
         var groups = result.Items
             .GroupBy(i => i.LevelName)
             .OrderBy(g => g.Key);
@@ -208,49 +234,89 @@ public class FormworkExportService
                 ws.Cell(row, 6).Value = Math.Round(catGroup.Sum(i => i.DeductionArea), 2);
                 ws.Cell(row, 7).Value = Math.Round(catGroup.Sum(i => i.NetArea), 2);
 
-                // Borders
-                ws.Range(row, 1, row, headers.Length).Style
+                // Style data row
+                var dataRange = ws.Range(row, 1, row, headers.Length);
+                dataRange.Style
+                    .Font.SetFontSize(11)
                     .Border.SetOutsideBorder(XLBorderStyleValues.Thin)
-                    .Border.SetInsideBorder(XLBorderStyleValues.Thin);
+                    .Border.SetInsideBorder(XLBorderStyleValues.Thin)
+                    .Border.SetOutsideBorderColor(BorderColor)
+                    .Border.SetInsideBorderColor(BorderColor);
+
+                // Center align STT, số lượng
+                ws.Cell(row, 1).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                ws.Cell(row, 4).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+
+                // Right align số liệu
+                for (int c = 5; c <= 7; c++)
+                {
+                    ws.Cell(row, c).Style
+                        .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Right)
+                        .NumberFormat.SetFormat("#,##0.00");
+                }
+
+                // Alternating color
+                if (stt % 2 == 0)
+                    dataRange.Style.Fill.SetBackgroundColor(AltRowBg);
+
                 row++;
             }
         }
 
-        // Total row
-        ws.Cell(row, 1).Value = "";
-        ws.Cell(row, 2).Value = "";
+        // ════ TOTAL ROW ════
         ws.Cell(row, 3).Value = "TỔNG CỘNG";
         ws.Cell(row, 4).Value = result.ElementCount;
         ws.Cell(row, 5).Value = Math.Round(result.TotalGrossArea, 2);
         ws.Cell(row, 6).Value = Math.Round(result.TotalDeduction, 2);
         ws.Cell(row, 7).Value = Math.Round(result.TotalNetArea, 2);
-        ws.Range(row, 1, row, headers.Length).Style
-            .Font.SetBold(true)
-            .Fill.SetBackgroundColor(XLColor.FromHtml("#D6E4F0"))
-            .Font.SetFontColor(XLColor.FromHtml("#1F3864"))
-            .Border.SetOutsideBorder(XLBorderStyleValues.Medium);
 
-        // Auto-fit
-        ws.Columns().AdjustToContents();
+        var totalRange = ws.Range(row, 1, row, headers.Length);
+        totalRange.Style
+            .Font.SetBold(true)
+            .Font.SetFontSize(12)
+            .Font.SetFontColor(TotalFg)
+            .Fill.SetBackgroundColor(TotalBg)
+            .Border.SetOutsideBorder(XLBorderStyleValues.Medium)
+            .Border.SetOutsideBorderColor(HeaderBg);
+
+        ws.Cell(row, 4).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+        for (int c = 5; c <= 7; c++)
+        {
+            ws.Cell(row, c).Style
+                .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Right)
+                .NumberFormat.SetFormat("#,##0.00");
+        }
+
+        // ════ FORMAT ════
+        ws.Columns(1, 7).AdjustToContents();
+        ws.Column(1).Width = 6;   // STT
+        ws.Column(4).Width = 10;  // SL
     }
 
     private static void CreateDetailSheet(IXLWorksheet ws, FormworkResult result)
     {
-        // Header
+        // ════ HEADER ════
         var headers = new[] { "STT", "ID", "Loại CK", "Type", "Tầng",
                              "Rộng (mm)", "Cao (mm)", "Dài (mm)",
                              "DT thô (m²)", "Trừ GN (m²)", "DT ròng (m²)" };
 
         for (int c = 0; c < headers.Length; c++)
         {
-            ws.Cell(1, c + 1).Value = headers[c];
+            var cell = ws.Cell(1, c + 1);
+            cell.Value = headers[c];
+            cell.Style
+                .Font.SetBold(true)
+                .Font.SetFontSize(11)
+                .Font.SetFontColor(HeaderFg)
+                .Fill.SetBackgroundColor(HeaderBg)
+                .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center)
+                .Alignment.SetVertical(XLAlignmentVerticalValues.Center)
+                .Border.SetOutsideBorder(XLBorderStyleValues.Thin)
+                .Border.SetOutsideBorderColor(BorderColor);
         }
-        ws.Range(1, 1, 1, headers.Length).Style
-            .Font.SetBold(true)
-            .Fill.SetBackgroundColor(XLColor.FromHtml("#2B579A"))
-            .Font.SetFontColor(XLColor.White)
-            .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+        ws.Row(1).Height = 24;
 
+        // ════ DATA ════
         int row = 2;
         int stt = 1;
         foreach (var item in result.Items.OrderBy(i => i.LevelName).ThenBy(i => i.Category))
@@ -267,18 +333,61 @@ public class FormworkExportService
             ws.Cell(row, 10).Value = item.DeductionArea;
             ws.Cell(row, 11).Value = item.NetArea;
 
-            // Alternate row color (light for readability)
-            if (row % 2 == 0)
+            var dataRange = ws.Range(row, 1, row, headers.Length);
+            dataRange.Style
+                .Font.SetFontSize(10.5)
+                .Border.SetOutsideBorder(XLBorderStyleValues.Thin)
+                .Border.SetInsideBorder(XLBorderStyleValues.Thin)
+                .Border.SetOutsideBorderColor(BorderColor)
+                .Border.SetInsideBorderColor(BorderColor);
+
+            // Center align STT, ID
+            ws.Cell(row, 1).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+            ws.Cell(row, 2).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+
+            // Right align kích thước + diện tích
+            for (int c = 6; c <= 11; c++)
             {
-                ws.Range(row, 1, row, headers.Length).Style
-                    .Fill.SetBackgroundColor(XLColor.FromHtml("#E8EDF3"));
+                ws.Cell(row, c).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Right);
             }
+            // Format số liệu
+            for (int c = 6; c <= 8; c++)
+                ws.Cell(row, c).Style.NumberFormat.SetFormat("#,##0");
+            for (int c = 9; c <= 11; c++)
+                ws.Cell(row, c).Style.NumberFormat.SetFormat("#,##0.00");
+
+            // Highlight DT ròng
+            ws.Cell(row, 11).Style
+                .Font.SetBold(true)
+                .Font.SetFontColor(XLColor.FromHtml("#1F4E79"));
+
+            // Alternating color
+            if (row % 2 == 0)
+                dataRange.Style.Fill.SetBackgroundColor(AltRowBg);
 
             row++;
         }
 
-        // Auto-fit & freeze header
+        // ════ TOTAL ════
+        ws.Cell(row, 3).Value = "TỔNG CỘNG";
+        ws.Cell(row, 9).Value = Math.Round(result.TotalGrossArea, 2);
+        ws.Cell(row, 10).Value = Math.Round(result.TotalDeduction, 2);
+        ws.Cell(row, 11).Value = Math.Round(result.TotalNetArea, 2);
+
+        var totalRange = ws.Range(row, 1, row, headers.Length);
+        totalRange.Style
+            .Font.SetBold(true)
+            .Font.SetFontSize(11)
+            .Font.SetFontColor(TotalFg)
+            .Fill.SetBackgroundColor(TotalBg)
+            .Border.SetOutsideBorder(XLBorderStyleValues.Medium);
+        for (int c = 9; c <= 11; c++)
+            ws.Cell(row, c).Style.NumberFormat.SetFormat("#,##0.00");
+
+        // ════ FORMAT ════
         ws.Columns().AdjustToContents();
+        ws.Column(1).Width = 6;   // STT
+        ws.Column(2).Width = 10;  // ID
         ws.SheetView.FreezeRows(1);
     }
 

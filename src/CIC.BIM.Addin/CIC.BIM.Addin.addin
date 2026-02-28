@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RevitAddIns>
   <AddIn Type="Application">
-    <Name>CIC Tool</Name>
+    <Name>CIC Tools</Name>
     <Assembly>CICTool\CIC.BIM.Addin.dll</Assembly>
     <FullClassName>CIC.BIM.Addin.App</FullClassName>
     <AddInId>8F4E2A1B-3C5D-4E6F-A7B8-9C0D1E2F3A4B</AddInId>

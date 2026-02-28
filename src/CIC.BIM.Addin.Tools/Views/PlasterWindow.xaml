@@ -81,24 +81,50 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Wall Type -->
-                <TextBlock Text="LOẠI TƯỜNG HOÀN THIỆN" Style="{StaticResource SectionHeader}"/>
+                <!-- TRÁT TƯỜNG -->
+                <TextBlock Text="TRÁT TƯỜNG" Style="{StaticResource SectionHeader}"/>
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
-                        <TextBlock Text="Loại tường (nhập để tìm)" Style="{StaticResource FieldLabel}"/>
-                        <ComboBox x:Name="CboWallType" Style="{StaticResource DarkComboBox}"
-                                  DisplayMemberPath="Name" Height="32"
-                                  IsEditable="True" IsTextSearchEnabled="False"
-                                  StaysOpenOnEdit="True">
-                            <ComboBox.Resources>
-                                <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#45475A"/>
-                                <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#CDD6F4"/>
-                                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#585B70"/>
-                                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFFFFF"/>
-                            </ComboBox.Resources>
-                        </ComboBox>
-                        <TextBlock Text="Chọn loại tường mỏng (VD: 10mm, 15mm, 20mm finish)" 
+                        <CheckBox x:Name="ChkWallPlaster" Content="Tạo lớp trát tường"
+                                  Style="{StaticResource DarkCheckBox}" IsChecked="True"/>
+                        <StackPanel x:Name="PnlWallPlaster" Margin="0,8,0,0"
+                                    IsEnabled="{Binding IsChecked, ElementName=ChkWallPlaster}">
+                            <TextBlock Text="Tìm kiếm loại tường" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="TxtWallSearch" Style="{StaticResource DarkTextBox}" 
+                                     Margin="0,0,0,6" TextChanged="TxtWallSearch_TextChanged"/>
+                            <TextBlock Text="Loại tường trát tường" Style="{StaticResource FieldLabel}"/>
+                            <ComboBox x:Name="CboWallType" Style="{StaticResource DarkComboBox}"
+                                      DisplayMemberPath="Name" Height="32"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- TRÁT CỘT -->
+                <TextBlock Text="TRÁT CỘT" Style="{StaticResource SectionHeader}"/>
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <CheckBox x:Name="ChkColumnPlaster" Content="Tạo lớp trát cột"
+                                  Style="{StaticResource DarkCheckBox}" IsChecked="True"/>
+                        <StackPanel x:Name="PnlColumnPlaster" Margin="0,8,0,0"
+                                    IsEnabled="{Binding IsChecked, ElementName=ChkColumnPlaster}">
+                            <TextBlock Text="Tìm kiếm loại tường" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="TxtColumnSearch" Style="{StaticResource DarkTextBox}" 
+                                     Margin="0,0,0,6" TextChanged="TxtColumnSearch_TextChanged"/>
+                            <TextBlock Text="Loại tường trát cột" Style="{StaticResource FieldLabel}"/>
+                            <ComboBox x:Name="CboColumnType" Style="{StaticResource DarkComboBox}"
+                                      DisplayMemberPath="Name" Height="32"/>
+                        </StackPanel>
+                        <TextBlock Text="Tự nhận biết cột nhô vào phòng, chỉ trát mặt không bị tường che" 
                                    FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- TRÁT DẦM (tương lai) -->
+                <TextBlock Text="TRÁT DẦM" Style="{StaticResource SectionHeader}"/>
+                <Border Style="{StaticResource Card}" Opacity="0.5">
+                    <StackPanel>
+                        <CheckBox x:Name="ChkBeamPlaster" Content="Tạo lớp trát dầm (sắp có)"
+                                  Style="{StaticResource DarkCheckBox}" IsChecked="False" IsEnabled="False"/>
                     </StackPanel>
                 </Border>
 
@@ -137,6 +163,10 @@
                     <StackPanel>
                         <CheckBox x:Name="ChkJoinGeometry" Content="Join với tường gốc"
                                   Style="{StaticResource DarkCheckBox}" IsChecked="True"/>
+                        <CheckBox x:Name="ChkAutoRoomBounding" Content="Tự động bật Room Bounding cho cột"
+                                  Style="{StaticResource DarkCheckBox}" IsChecked="True" Margin="0,6,0,0"/>
+                        <TextBlock Text="Room sẽ tự động bao quanh cột nhô vào phòng" 
+                                   FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0"/>
                     </StackPanel>
                 </Border>
 
@@ -148,18 +178,12 @@
                                   Style="{StaticResource DarkCheckBox}" IsChecked="False"/>
                         <StackPanel x:Name="PnlFloorOptions" Margin="0,8,0,0"
                                     IsEnabled="{Binding IsChecked, ElementName=ChkCreateFloor}">
-                            <TextBlock Text="Loại sàn (nhập để tìm)" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="Tìm kiếm loại sàn" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="TxtFloorSearch" Style="{StaticResource DarkTextBox}" 
+                                     Margin="0,0,0,6" TextChanged="TxtFloorSearch_TextChanged"/>
+                            <TextBlock Text="Loại sàn" Style="{StaticResource FieldLabel}"/>
                             <ComboBox x:Name="CboFloorType" Style="{StaticResource DarkComboBox}"
-                                      DisplayMemberPath="Name" Height="32"
-                                      IsEditable="True" IsTextSearchEnabled="False"
-                                      StaysOpenOnEdit="True">
-                                <ComboBox.Resources>
-                                    <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#45475A"/>
-                                    <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#CDD6F4"/>
-                                    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#585B70"/>
-                                    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFFFFF"/>
-                                </ComboBox.Resources>
-                            </ComboBox>
+                                      DisplayMemberPath="Name" Height="32"/>
                             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                                 <TextBlock Text="Offset (mm):" Style="{StaticResource FieldLabel}"
                                            VerticalAlignment="Center" Margin="0,0,8,0"/>

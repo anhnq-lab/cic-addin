@@ -14,7 +14,7 @@ namespace CIC.BIM.Addin;
 /// </summary>
 public class App : IExternalApplication
 {
-    private const string TabName = "CIC Tool";
+    private const string TabName = "CIC Tools";
     private const string PanelFM = "Quản lý Vận hành";
     private const string PanelAnalytics = "Phân tích Hiệu suất";
 
@@ -68,6 +68,22 @@ public class App : IExternalApplication
             };
             panelData.AddItem(btnAutoJoint);
 
+            // Button 3: Tô màu đối tượng
+            var btnColorOverride = new PushButtonData(
+                "ColorOverride",
+                "Tô màu\nĐối tượng",
+                toolsAssemblyPath,
+                "CIC.BIM.Addin.Tools.Commands.ColorOverrideCommand"
+            )
+            {
+                ToolTip = "Tô màu đối tượng theo Category để dễ nhận biết",
+                LongDescription = "Gán màu cho từng Category trong View hiện tại.\n" +
+                    "Hỗ trợ chọn màu tùy chỉnh, bật/tắt từng category.\n" +
+                    "Có thể Reset về màu gốc bất cứ lúc nào.",
+                LargeImage = LoadIcon("icon_assign_params.png")
+            };
+            panelData.AddItem(btnColorOverride);
+
             // ═══ Panel: Kết cấu ═══
             var panelKC = application.CreateRibbonPanel(TabName, "Kết cấu");
 
@@ -101,6 +117,22 @@ public class App : IExternalApplication
                 LargeImage = LoadIcon("icon_plaster.png")
             };
             panelKC.AddItem(btnPlaster);
+
+            // Button: Room Bounding
+            var btnRoomBounding = new PushButtonData(
+                "SetRoomBounding",
+                "Bật Room\nBounding",
+                toolsAssemblyPath,
+                "CIC.BIM.Addin.Tools.Commands.SetRoomBoundingCommand"
+            )
+            {
+                ToolTip = "Bật Room Bounding cho link instances và cột",
+                LongDescription = "Tự động bật Room Bounding cho tất cả file link và cột.\n" +
+                    "Room sẽ nhận diện tường/cột từ file link kết cấu.\n" +
+                    "Chạy trước khi tạo Room hoặc trước khi chạy Trát tường.",
+                LargeImage = LoadIcon("icon_room_bounding.png")
+            };
+            panelKC.AddItem(btnRoomBounding);
 
             // ═══ Panel: Kiến trúc ═══
             var panelKT = application.CreateRibbonPanel(TabName, "Kiến trúc");
@@ -240,30 +272,9 @@ public class App : IExternalApplication
                 _activityTracker.StartTracking(application);
                 DashboardCommand.Tracker = _activityTracker;
 
-                // ═══ Panel: Analytics Dashboard (admin only) ═══
-                if (SupabaseSyncService.IsCurrentUserAdmin())
-                {
-                    var panelAnalytics = application.CreateRibbonPanel(TabName, PanelAnalytics);
-                    var analyticsAssemblyPath = Path.Combine(
-                        Path.GetDirectoryName(assemblyPath)!,
-                        "CIC.BIM.Addin.Analytics.dll"
-                    );
-
-                    var btnDashboard = new PushButtonData(
-                        "AnalyticsDashboard",
-                        "📊 Dashboard\nHiệu suất",
-                        analyticsAssemblyPath,
-                        "CIC.BIM.Addin.Analytics.Commands.DashboardCommand"
-                    )
-                    {
-                        ToolTip = "Xem dashboard phân tích hiệu suất làm việc trong Revit",
-                        LongDescription = "Hiển thị biểu đồ phân bổ thời gian (Modeling, Editing, Viewing, Idle...),\n" +
-                            "phân tích workflow, phát hiện lãng phí quy trình.\n" +
-                            "Chỉ hiển thị cho quản trị viên.",
-                        LargeImage = LoadIcon("icon_dashboard.png")
-                    };
-                    panelAnalytics.AddItem(btnDashboard);
-                }
+                // ═══ Dashboard panel ẩn tạm thời - chỉ tracking ẩn ═══
+                // Panel Analytics Dashboard đã được ẩn theo yêu cầu.
+                // Tracking hiệu suất vẫn hoạt động ẩn phía sau.
             }
             catch (Exception analyticsEx)
             {

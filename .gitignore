@@ -20,3 +20,7 @@ packages/
 *.tmp
 read_excel*.ps1
 ideas_data.tsv
+dist/
+
+# Large Revit files
+TemPlate/

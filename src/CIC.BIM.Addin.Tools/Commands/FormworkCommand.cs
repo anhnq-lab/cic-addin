@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Autodesk.Revit.Attributes;
@@ -7,7 +6,6 @@ using Autodesk.Revit.UI;
 using Autodesk.Revit.UI.Selection;
 using CIC.BIM.Addin.Tools.Services;
 using CIC.BIM.Addin.Tools.Views;
-using Microsoft.Win32;
 
 namespace CIC.BIM.Addin.Tools.Commands;
 
@@ -106,25 +104,14 @@ public class FormworkCommand : IExternalCommand
             try
             {
                 var projectName = doc.Title ?? "Project";
-                var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                var defaultFileName = $"VanKhuon_B3.2_{projectName}_{timestamp}.xlsx";
+                var filePath = FormworkExportService.ExportToExcel(result, projectName);
 
-                // Cho phép user chọn nơi lưu file
-                var saveDialog = new SaveFileDialog
+                if (string.IsNullOrEmpty(filePath))
                 {
-                    Title = "Chọn nơi lưu file Excel Ván khuôn",
-                    Filter = "Excel Files (*.xlsx)|*.xlsx",
-                    FileName = defaultFileName,
-                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
-                };
-
-                if (saveDialog.ShowDialog() != true)
-                {
-                    messages.Add("⏭️ Bỏ qua xuất Excel (người dùng hủy)");
+                    messages.Add("📊 Excel: Đã hủy chọn vị trí lưu");
                 }
                 else
                 {
-                    var filePath = FormworkExportService.ExportToExcel(result, projectName, saveDialog.FileName);
                     messages.Add($"📊 Excel: {filePath}");
 
                     // Tự mở file Excel
@@ -136,10 +123,10 @@ public class FormworkCommand : IExternalCommand
                             UseShellExecute = true
                         });
                     }
-                    catch { /* Không mở được → bỏ qua */ }
+                    catch { }
                 }
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 messages.Add($"⚠️ Lỗi xuất Excel: {ex.Message}");
             }

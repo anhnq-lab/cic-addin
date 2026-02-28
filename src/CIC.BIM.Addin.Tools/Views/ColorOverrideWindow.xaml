@@ -1,0 +1,92 @@
+<Window x:Class="CIC.BIM.Addin.Tools.Views.ColorOverrideWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🎨 Tô màu đối tượng theo Category"
+        Width="600" Height="560" MinWidth="500" MinHeight="450"
+        WindowStartupLocation="CenterScreen"
+        Background="#1E1E2E" Foreground="#CDD6F4">
+
+    <Window.Resources>
+        <ResourceDictionary Source="../Themes/ToolStyles.xaml"/>
+    </Window.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ═══ HEADER ═══ -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,8">
+            <TextBlock Text="🎨 Tô màu đối tượng" FontSize="18" FontWeight="Bold"/>
+            <TextBlock Text="Tô màu các đối tượng theo Category để dễ nhận biết trong View hiện tại"
+                       FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0"/>
+            <Border Height="2" Background="{StaticResource BlueBrush}" Margin="0,8,0,0" Opacity="0.4"/>
+        </StackPanel>
+
+        <!-- ═══ DANH SÁCH CATEGORY ═══ -->
+        <Border Grid.Row="1" Style="{StaticResource Card}" Padding="0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Thanh tiêu đề -->
+                <DockPanel Grid.Row="0" Background="#233A5C">
+                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Margin="0,0,4,0">
+                        <Button x:Name="BtnSelectAll" Content="☑ Tất cả" FontSize="11"
+                                Height="26" Margin="2" Padding="8,2"
+                                Background="Transparent" Foreground="{StaticResource GreenBrush}"
+                                BorderThickness="0" Cursor="Hand"
+                                ToolTip="Chọn tất cả" Click="BtnSelectAll_Click"/>
+                        <Button x:Name="BtnDeselectAll" Content="☐ Bỏ chọn" FontSize="11"
+                                Height="26" Margin="2" Padding="8,2"
+                                Background="Transparent" Foreground="{StaticResource TextMutedBrush}"
+                                BorderThickness="0" Cursor="Hand"
+                                ToolTip="Bỏ chọn tất cả" Click="BtnDeselectAll_Click"/>
+                    </StackPanel>
+                    <Grid Margin="12,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="30"/>
+                            <ColumnDefinition Width="30"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="80"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="✓" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="#89B4FA" HorizontalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Text="Màu" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="#89B4FA" HorizontalAlignment="Center"/>
+                        <TextBlock Grid.Column="2" Text="Category" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="#89B4FA" Margin="8,0,0,0"/>
+                        <TextBlock Grid.Column="3" Text="Số lượng" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="#F9E2AF" HorizontalAlignment="Center"/>
+                    </Grid>
+                </DockPanel>
+
+                <!-- Danh sách (scrollable) -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,2,0,0">
+                    <StackPanel x:Name="PanelCategories" Margin="4"/>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- ═══ THÔNG TIN ═══ -->
+        <StackPanel Grid.Row="2" Margin="0,8,0,0">
+            <TextBlock x:Name="TxtStatus" Text="Sẵn sàng. Chọn categories và nhấn Tô màu."
+                       FontSize="11" Foreground="{StaticResource TextSecBrush}"/>
+        </StackPanel>
+
+        <!-- ═══ BUTTONS ═══ -->
+        <DockPanel Grid.Row="3" Margin="0,12,0,0">
+            <Button x:Name="BtnClose" Content="Đóng" Style="{StaticResource SecondaryButton}"
+                    DockPanel.Dock="Right" Click="BtnClose_Click" Margin="8,0,0,0"/>
+            <Button x:Name="BtnApply" Content="🎨 Tô màu" Style="{StaticResource PrimaryButton}"
+                    DockPanel.Dock="Right" Click="BtnApply_Click" Margin="8,0,0,0" Padding="16,8"/>
+            <Button x:Name="BtnReset" Content="↺ Reset" Style="{StaticResource SecondaryButton}"
+                    DockPanel.Dock="Left" Click="BtnReset_Click" Padding="16,8"/>
+        </DockPanel>
+    </Grid>
+</Window>

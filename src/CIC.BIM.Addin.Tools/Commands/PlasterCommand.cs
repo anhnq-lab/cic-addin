@@ -86,6 +86,10 @@ public class PlasterCommand : IExternalCommand
             HeightMm = window.HeightMm,
             BaseOffsetMm = window.BaseOffsetMm,
             JoinWithOriginal = window.JoinWithOriginal,
+            AutoRoomBounding = window.AutoRoomBounding,
+            CreateWallPlaster = window.CreateWallPlaster,
+            CreateColumnPlaster = window.CreateColumnPlaster,
+            ColumnPlasterTypeId = window.SelectedColumnTypeId,
             CreateFloorFinish = window.CreateFloorFinish,
             FloorTypeId = window.SelectedFloorTypeId,
             FloorOffsetMm = window.FloorOffsetMm
@@ -96,20 +100,30 @@ public class PlasterCommand : IExternalCommand
         var result = service.Execute(doc, rooms, options);
 
         // Step 5: Show results
-        var msg = $"Hoan tat!\n" +
-                  $"Room da xu ly: {result.RoomsProcessed}\n" +
-                  $"Tuong tao moi: {result.WallsCreated}\n" +
-                  $"San tao moi: {result.FloorsCreated}";
+        var msg = $"Hoàn tất!\n" +
+                  $"Room đã xử lý: {result.RoomsProcessed}\n" +
+                  $"Trát tường: {result.WallsCreated}\n" +
+                  $"Trát cột: {result.ColumnWallsCreated}\n" +
+                  $"Sàn tạo mới: {result.FloorsCreated}";
+
+        if (result.ColumnsSetRoomBounding > 0 || result.LinksSetRoomBounding > 0)
+        {
+            msg += "\n";
+            if (result.ColumnsSetRoomBounding > 0)
+                msg += $"\nĐã bật Room Bounding cho {result.ColumnsSetRoomBounding} cột.";
+            if (result.LinksSetRoomBounding > 0)
+                msg += $"\nĐã bật Room Bounding cho {result.LinksSetRoomBounding} file link.";
+        }
 
         if (result.Warnings.Count > 0)
         {
-            msg += $"\n\nCanh bao ({result.Warnings.Count}):\n";
-            msg += string.Join("\n", result.Warnings.Take(10));
-            if (result.Warnings.Count > 10)
-                msg += $"\n... va {result.Warnings.Count - 10} canh bao khac";
+            msg += $"\n\nCảnh báo ({result.Warnings.Count}):\n";
+            msg += string.Join("\n", result.Warnings.Take(20));
+            if (result.Warnings.Count > 20)
+                msg += $"\n... và {result.Warnings.Count - 20} cảnh báo khác";
         }
 
-        TaskDialog.Show("Tuong hoan thien", msg);
+        TaskDialog.Show("CIC Tool - Tường hoàn thiện", msg);
         return Result.Succeeded;
     }
 

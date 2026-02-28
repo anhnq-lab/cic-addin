@@ -87,7 +87,7 @@ public static class FormworkGeometryService
 
     /// <summary>
     /// Tạo DirectShape cho mỗi Face ván khuôn của 1 cấu kiện.
-    /// Dùng Mesh triangulation + offset theo normal → tạo thin solid từ triangles.
+    /// Dùng CreateExtrusionGeometry cho face phẳng → solid sạch, không có đường tam giác.
     /// </summary>
     private static void CreateFormworkForElement(
         Document doc, Element elem, double thickness,
@@ -110,106 +110,112 @@ public static class FormworkGeometryService
 
         if (formworkFaces.Count == 0) return;
 
-        // Tạo TessellatedShapeBuilder cho tất cả formwork panels
-        var builder = new TessellatedShapeBuilder();
-        builder.OpenConnectedFaceSet(false);
-
+        // Tạo geometry cho mỗi face → list solids
+        var geoList = new List<GeometryObject>();
         int facesAdded = 0;
 
         foreach (var face in formworkFaces)
         {
             try
             {
-                // Triangulate face
-                var mesh = face.Triangulate(0.5); // Level of detail
-                if (mesh == null || mesh.NumTriangles == 0) continue;
-
-                // Lấy normal
-                var bb = face.GetBoundingBox();
-                var midUV = new UV(
-                    (bb.Min.U + bb.Max.U) / 2,
-                    (bb.Min.V + bb.Max.V) / 2);
-                var normal = face.ComputeNormal(midUV).Normalize();
-                var offset = normal.Multiply(thickness);
-
-                // Tạo thin prism cho mỗi triangle
-                for (int t = 0; t < mesh.NumTriangles; t++)
+                // Chỉ xử lý PlanarFace — đảm bảo extrusion sạch
+                if (face is PlanarFace planarFace)
                 {
-                    var tri = mesh.get_Triangle(t);
-                    var p0 = tri.get_Vertex(0);
-                    var p1 = tri.get_Vertex(1);
-                    var p2 = tri.get_Vertex(2);
+                    var curveLoops = planarFace.GetEdgesAsCurveLoops();
+                    if (curveLoops == null || curveLoops.Count == 0) continue;
 
-                    // Offset vertices
-                    var p0o = p0.Add(offset);
-                    var p1o = p1.Add(offset);
-                    var p2o = p2.Add(offset);
+                    // Lấy normal hướng ra ngoài
+                    var normal = planarFace.FaceNormal.Normalize();
 
-                    // Mặt ngoài (original face side)
-                    builder.AddFace(new TessellatedFace(
-                        new List<XYZ> { p0, p1, p2 }, materialId));
+                    // Tạo solid extrusion: đẩy theo hướng normal ra ngoài
+                    var panelSolid = GeometryCreationUtilities.CreateExtrusionGeometry(
+                        curveLoops, normal, thickness);
 
-                    // Mặt trong (offset side)
-                    builder.AddFace(new TessellatedFace(
-                        new List<XYZ> { p2o, p1o, p0o }, materialId));
-
-                    // 3 mặt bên
-                    builder.AddFace(new TessellatedFace(
-                        new List<XYZ> { p0, p0o, p1o, p1 }, materialId));
-                    builder.AddFace(new TessellatedFace(
-                        new List<XYZ> { p1, p1o, p2o, p2 }, materialId));
-                    builder.AddFace(new TessellatedFace(
-                        new List<XYZ> { p2, p2o, p0o, p0 }, materialId));
+                    if (panelSolid != null && panelSolid.Volume > 0)
+                    {
+                        geoList.Add(panelSolid);
+                        result.TotalAreaSqM += face.Area * SqFeetToSqM;
+                        facesAdded++;
+                    }
                 }
+                else
+                {
+                    // Non-planar face: dùng CurveLoop xấp xỉ từ edges
+                    var curveLoops = face.GetEdgesAsCurveLoops();
+                    if (curveLoops == null || curveLoops.Count == 0) continue;
 
-                result.TotalAreaSqM += face.Area * SqFeetToSqM;
-                facesAdded++;
+                    // Dùng normal tại tâm face
+                    var bb = face.GetBoundingBox();
+                    var midUV = new UV(
+                        (bb.Min.U + bb.Max.U) / 2,
+                        (bb.Min.V + bb.Max.V) / 2);
+                    var normal = face.ComputeNormal(midUV).Normalize();
+
+                    try
+                    {
+                        var panelSolid = GeometryCreationUtilities.CreateExtrusionGeometry(
+                            curveLoops, normal, thickness);
+
+                        if (panelSolid != null && panelSolid.Volume > 0)
+                        {
+                            geoList.Add(panelSolid);
+                            result.TotalAreaSqM += face.Area * SqFeetToSqM;
+                            facesAdded++;
+                        }
+                    }
+                    catch
+                    {
+                        // Non-planar extrusion failed, skip silently
+                    }
+                }
             }
             catch (Exception ex)
             {
                 if (result.Errors.Count < 20)
-                    result.Errors.Add($"  Face: {ex.Message}");
+                    result.Errors.Add($"  Face [{elem.Name}]: {ex.Message}");
             }
         }
 
-        builder.CloseConnectedFaceSet();
+        if (geoList.Count == 0) return;
 
-        if (facesAdded == 0) return;
-
-        builder.Target = TessellatedShapeBuilderTarget.Mesh;
-        builder.Fallback = TessellatedShapeBuilderFallback.Salvage;
-        builder.Build();
-
-        var builderResult = builder.GetBuildResult();
-        var geoObjects = builderResult.GetGeometricalObjects();
-
-        if (geoObjects == null || geoObjects.Count == 0)
-        {
-            result.Errors.Add($"[{elem.Name}] TessellatedShapeBuilder returned empty");
-            return;
-        }
-
-        // Tạo DirectShape
+        // Tạo DirectShape chứa tất cả panels
         var ds = DirectShape.CreateElement(
             doc, new ElementId(BuiltInCategory.OST_GenericModel));
 
-        ds.SetShape(geoObjects.ToList());
+        ds.SetShape(geoList);
         ds.Name = $"{DirectShapePrefix}{elem.Id.Value}";
+
+        // Gán material trực tiếp lên DirectShape
+        foreach (var geoObj in geoList)
+        {
+            if (geoObj is Solid s)
+            {
+                foreach (Face f in s.Faces)
+                {
+                    // Material đã set qua OverrideGraphicSettings
+                }
+            }
+        }
 
         // Override graphics → màu nâu
         var view = doc.ActiveView;
         if (view != null)
         {
             var ogs = new OverrideGraphicSettings();
+            // Surface — tô đặc màu nâu
             ogs.SetSurfaceForegroundPatternColor(new Color(139, 90, 43));
             ogs.SetSurfaceBackgroundPatternColor(new Color(139, 90, 43));
-            ogs.SetProjectionLineColor(new Color(101, 67, 33));
             if (solidFillId != ElementId.InvalidElementId)
             {
                 ogs.SetSurfaceForegroundPatternId(solidFillId);
                 ogs.SetSurfaceBackgroundPatternId(solidFillId);
             }
             ogs.SetSurfaceTransparency(10);
+
+            // Projection lines — tối thiểu
+            ogs.SetProjectionLineColor(new Color(139, 90, 43));
+            ogs.SetProjectionLineWeight(1);
+
             view.SetElementOverrides(ds.Id, ogs);
         }
 
