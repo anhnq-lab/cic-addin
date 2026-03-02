@@ -2,6 +2,13 @@
 
 Tất cả các thay đổi đáng giá của dự án sẽ được ghi nhận tại file này.
 
+## [1.0.5] - 2026-03-02
+
+### Thay đổi & Cập nhật
+- **Tường hoàn thiện (Wall Finish):** Viết lại toàn bộ — tạo tường theo biên dạng Room chuẩn, hỗ trợ offset biên dạng (co vào/nới ra).
+- **Tường hoàn thiện:** Thêm tính năng gắn tên Room vào parameter tường/sàn đã tạo (mặc định: Comments).
+- **Tường hoàn thiện:** Đơn giản hóa giao diện, bỏ phần trát cột/trát dầm phức tạp.
+
 ## [1.0.4] - 2026-03-01
 
 ### Thay đổi & Cập nhật

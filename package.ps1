@@ -27,7 +27,7 @@ Write-Host "  OK Build thanh cong" -ForegroundColor Green
 Write-Host "[2/4] Tao thu muc phan phoi..." -ForegroundColor Yellow
 
 $distDir = Join-Path $ScriptDir $OutputDir
-$packageName = "CIC_BIM_Addin_v1.0.4"
+$packageName = "CIC_BIM_Addin_v1.0.5"
 $packageDir = Join-Path $distDir $packageName
 
 # Don cu

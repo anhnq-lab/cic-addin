@@ -63,7 +63,7 @@ public class PlasterCommand : IExternalCommand
             
             if (rooms.Count == 0)
             {
-                TaskDialog.Show("Tuong hoan thien", $"Khong tim thay Room nao co Parameter '{paramName}' chua gia tri '{expectedValue}'.");
+                TaskDialog.Show("Tường hoàn thiện", $"Không tìm thấy Room nào có Parameter '{paramName}' chứa giá trị '{expectedValue}'.");
                 return Result.Cancelled;
             }
         }
@@ -75,7 +75,7 @@ public class PlasterCommand : IExternalCommand
 
         if (rooms.Count == 0)
         {
-            TaskDialog.Show("Tuong hoan thien", "Chua chon Room nao.");
+            TaskDialog.Show("Tường hoàn thiện", "Chưa chọn Room nào.");
             return Result.Cancelled;
         }
 
@@ -85,11 +85,10 @@ public class PlasterCommand : IExternalCommand
             WallTypeId = window.SelectedWallTypeId,
             HeightMm = window.HeightMm,
             BaseOffsetMm = window.BaseOffsetMm,
+            OffsetMm = window.BoundaryOffsetMm,
             JoinWithOriginal = window.JoinWithOriginal,
-            AutoRoomBounding = window.AutoRoomBounding,
-            CreateWallPlaster = window.CreateWallPlaster,
-            CreateColumnPlaster = window.CreateColumnPlaster,
-            ColumnPlasterTypeId = window.SelectedColumnTypeId,
+            AssignRoomName = window.AssignRoomName,
+            RoomNameParam = window.RoomNameParam,
             CreateFloorFinish = window.CreateFloorFinish,
             FloorTypeId = window.SelectedFloorTypeId,
             FloorOffsetMm = window.FloorOffsetMm
@@ -102,18 +101,11 @@ public class PlasterCommand : IExternalCommand
         // Step 5: Show results
         var msg = $"Hoàn tất!\n" +
                   $"Room đã xử lý: {result.RoomsProcessed}\n" +
-                  $"Trát tường: {result.WallsCreated}\n" +
-                  $"Trát cột: {result.ColumnWallsCreated}\n" +
+                  $"Tường tạo mới: {result.WallsCreated}\n" +
                   $"Sàn tạo mới: {result.FloorsCreated}";
 
-        if (result.ColumnsSetRoomBounding > 0 || result.LinksSetRoomBounding > 0)
-        {
-            msg += "\n";
-            if (result.ColumnsSetRoomBounding > 0)
-                msg += $"\nĐã bật Room Bounding cho {result.ColumnsSetRoomBounding} cột.";
-            if (result.LinksSetRoomBounding > 0)
-                msg += $"\nĐã bật Room Bounding cho {result.LinksSetRoomBounding} file link.";
-        }
+        if (options.OffsetMm != 0)
+            msg += $"\nOffset biên dạng: {options.OffsetMm} mm";
 
         if (result.Warnings.Count > 0)
         {
@@ -129,7 +121,6 @@ public class PlasterCommand : IExternalCommand
 
     /// <summary>
     /// Pick Rooms by clicking INSIDE the room area.
-    /// Uses PickPoint → GetRoomAtPoint (vì Room là spatial element, không click trực tiếp được).
     /// </summary>
     private static List<Room> PickRoomsByPoint(UIDocument uiDoc)
     {
@@ -155,9 +146,9 @@ public class PlasterCommand : IExternalCommand
             return rooms;
 
         // Interactive pick: click inside room to select
-        TaskDialog.Show("Chon Room",
-            "Click vao BEN TRONG phong de chon Room.\n" +
-            "Nhan Esc de ket thuc chon.");
+        TaskDialog.Show("Chọn Room",
+            "Click vào BÊN TRONG phòng để chọn Room.\n" +
+            "Nhấn Esc để kết thúc chọn.");
 
         // Get active view's phase for Room lookup
         var view = doc.ActiveView;
@@ -170,9 +161,8 @@ public class PlasterCommand : IExternalCommand
         {
             try
             {
-                var point = uiDoc.Selection.PickPoint("Click trong phong (Esc de ket thuc)");
+                var point = uiDoc.Selection.PickPoint("Click trong phòng (Esc để kết thúc)");
 
-                // Find Room at picked point
                 Room? pickedRoom = null;
 
                 if (phase != null)
@@ -186,20 +176,20 @@ public class PlasterCommand : IExternalCommand
                     {
                         rooms.Add(pickedRoom);
                         pickedIds.Add(pickedRoom.Id.IntegerValue);
-                        TaskDialog.Show("Da chon",
+                        TaskDialog.Show("Đã chọn",
                             $"Room: {pickedRoom.Name} (ID: {pickedRoom.Id.IntegerValue})\n" +
-                            $"Tong: {rooms.Count} room da chon.\n\n" +
-                            $"Tiep tuc click hoac Esc de chay.");
+                            $"Tổng: {rooms.Count} room đã chọn.\n\n" +
+                            $"Tiếp tục click hoặc Esc để chạy.");
                     }
                     else
                     {
-                        TaskDialog.Show("Trung", "Room nay da chon roi!");
+                        TaskDialog.Show("Trùng", "Room này đã chọn rồi!");
                     }
                 }
                 else
                 {
-                    TaskDialog.Show("Khong tim thay",
-                        "Khong tim thay Room tai vi tri nay.\nHay click vao ben trong vung co Room.");
+                    TaskDialog.Show("Không tìm thấy",
+                        "Không tìm thấy Room tại vị trí này.\nHãy click vào bên trong vùng có Room.");
                 }
             }
             catch (Autodesk.Revit.Exceptions.OperationCanceledException)

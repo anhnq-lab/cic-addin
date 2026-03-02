@@ -5,6 +5,11 @@
     <AssemblyName>CIC.BIM.Addin.FacilityMgmt</AssemblyName>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net48'">
+    <GenerateTargetPlatformAttribute>false</GenerateTargetPlatformAttribute>
+    <GenerateSupportedOSPlatformAttribute>false</GenerateSupportedOSPlatformAttribute>
+  </PropertyGroup>
+
   <!-- ClosedXML for Excel export — version-conditional for framework compat -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
     <PackageReference Include="ClosedXML" Version="0.104.2" />

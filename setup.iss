@@ -4,7 +4,7 @@
 ; ═══════════════════════════════════════════════════════════
 
 #define MyAppName "CIC BIM Addin"
-#define MyAppVersion "1.0.4"
+#define MyAppVersion "1.0.5"
 #define MyAppPublisher "CIC Technology Joint Stock Company"
 #define MyAppURL "https://github.com/anhnq-lab/cic-addin"
 

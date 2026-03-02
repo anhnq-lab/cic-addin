@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Architecture;
 
@@ -20,9 +19,6 @@ public partial class PlasterWindow : Window
     private readonly Document _doc;
     private List<WallType> _wallTypes = new();
     private List<FloorType> _floorTypes = new();
-    private bool _isFilteringWall;
-    private bool _isFilteringFloor;
-    private bool _isFilteringColumn;
 
     // Selected options
     public RoomSelectionMethod SelectionMethod
@@ -36,18 +32,10 @@ public partial class PlasterWindow : Window
     }
 
     public string SelectedParameter => CboRoomParameter?.SelectedItem as string ?? "";
-    
     public string ParameterValue => CboParameterValue?.Text ?? "";
 
-    // Wall plaster
-    public bool CreateWallPlaster => ChkWallPlaster.IsChecked == true;
     public ElementId SelectedWallTypeId =>
         CboWallType.SelectedItem is WallType wt ? wt.Id : ElementId.InvalidElementId;
-
-    // Column plaster
-    public bool CreateColumnPlaster => ChkColumnPlaster.IsChecked == true;
-    public ElementId SelectedColumnTypeId =>
-        CboColumnType.SelectedItem is WallType ct ? ct.Id : ElementId.InvalidElementId;
 
     public ElementId SelectedFloorTypeId =>
         CboFloorType.SelectedItem is FloorType ft ? ft.Id : ElementId.InvalidElementId;
@@ -57,9 +45,13 @@ public partial class PlasterWindow : Window
 
     public double BaseOffsetMm => ParseMm(TxtBaseOffset.Text, 0);
 
+    public double BoundaryOffsetMm => ParseMm(TxtBoundaryOffset.Text, 0);
+
     public bool JoinWithOriginal => ChkJoinGeometry.IsChecked == true;
 
-    public bool AutoRoomBounding => ChkAutoRoomBounding.IsChecked == true;
+    public bool AssignRoomName => ChkAssignRoomName.IsChecked == true;
+
+    public string RoomNameParam => CboRoomNameParam?.Text ?? "Comments";
 
     public bool CreateFloorFinish => ChkCreateFloor.IsChecked == true;
 
@@ -70,9 +62,9 @@ public partial class PlasterWindow : Window
         _doc = doc;
         InitializeComponent();
         LoadWallTypes();
-        LoadColumnTypes();
         LoadFloorTypes();
         LoadRoomParameters();
+        LoadWallParamNames();
     }
 
     private void LoadWallTypes()
@@ -97,14 +89,34 @@ public partial class PlasterWindow : Window
         CboWallType.SelectedItem = preferred ?? _wallTypes.FirstOrDefault();
     }
 
-    private void LoadColumnTypes()
+    private void LoadWallParamNames()
     {
-        // Share same wall types list, separate combobox
-        CboColumnType.ItemsSource = _wallTypes;
+        // Lấy danh sách parameter kiểu String từ 1 wall instance
+        var paramNames = new List<string> { "Comments" }; // Mặc định luôn có
 
-        // Try to find same preferred type as wall
-        var preferred = CboWallType.SelectedItem ?? _wallTypes.FirstOrDefault(w => !w.Name.StartsWith("_"));
-        CboColumnType.SelectedItem = preferred ?? _wallTypes.FirstOrDefault();
+        var sampleWall = new FilteredElementCollector(_doc)
+            .OfClass(typeof(Wall))
+            .WhereElementIsNotElementType()
+            .FirstOrDefault();
+
+        if (sampleWall != null)
+        {
+            foreach (Parameter p in sampleWall.Parameters)
+            {
+                if (p.StorageType == StorageType.String
+                    && !p.IsReadOnly
+                    && !string.IsNullOrWhiteSpace(p.Definition.Name))
+                {
+                    paramNames.Add(p.Definition.Name);
+                }
+            }
+        }
+
+        CboRoomNameParam.ItemsSource = paramNames.Distinct().OrderBy(n => n).ToList();
+
+        // Chọn mặc định "Comments"
+        var defaultIdx = paramNames.IndexOf("Comments");
+        CboRoomNameParam.SelectedIndex = defaultIdx >= 0 ? defaultIdx : 0;
     }
 
     private void LoadFloorTypes()
@@ -163,7 +175,6 @@ public partial class PlasterWindow : Window
         var paramName = CboRoomParameter.SelectedItem as string ?? "";
         if (string.IsNullOrEmpty(paramName)) return;
 
-        // Collect distinct values of the selected parameter from all rooms
         var values = new HashSet<string>();
         var rooms = new FilteredElementCollector(_doc)
             .OfCategory(BuiltInCategory.OST_Rooms)
@@ -213,7 +224,6 @@ public partial class PlasterWindow : Window
             CboWallType.ItemsSource = filtered;
         }
 
-        // Auto-select first item if any
         if (CboWallType.Items.Count > 0)
             CboWallType.SelectedIndex = 0;
     }
@@ -237,40 +247,18 @@ public partial class PlasterWindow : Window
             CboFloorType.SelectedIndex = 0;
     }
 
-    private void TxtColumnSearch_TextChanged(object sender, TextChangedEventArgs e)
-    {
-        var text = TxtColumnSearch.Text;
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            CboColumnType.ItemsSource = _wallTypes;
-        }
-        else
-        {
-            var filtered = _wallTypes
-                .Where(w => w.Name.IndexOf(text, System.StringComparison.OrdinalIgnoreCase) >= 0)
-                .ToList();
-            CboColumnType.ItemsSource = filtered;
-        }
-
-        if (CboColumnType.Items.Count > 0)
-            CboColumnType.SelectedIndex = 0;
-    }
-
     private void BtnRun_Click(object sender, RoutedEventArgs e)
     {
-        bool wallOk = !CreateWallPlaster || CboWallType.SelectedItem != null;
-        bool colOk = !CreateColumnPlaster || CboColumnType.SelectedItem != null;
-
-        if (!wallOk || !colOk)
+        if (CboWallType.SelectedItem == null)
         {
-            MessageBox.Show("Vui lòng chọn Wall Type cho các loại trát đã bật!", "Thiếu thông tin",
+            MessageBox.Show("Vui lòng chọn loại tường hoàn thiện!", "Thiếu thông tin",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
-        if (!CreateWallPlaster && !CreateColumnPlaster && !CreateFloorFinish)
+        if (CreateFloorFinish && CboFloorType.SelectedItem == null)
         {
-            MessageBox.Show("Vui lòng chọn ít nhất một loại trát!", "Thiếu thông tin",
+            MessageBox.Show("Vui lòng chọn loại sàn!", "Thiếu thông tin",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
