@@ -9,7 +9,7 @@ $Host.UI.RawUI.WindowTitle = "CIC BIM Addin - Cai dat"
 Write-Host ""
 Write-Host "  ╔═══════════════════════════════════════════════╗" -ForegroundColor Cyan
 Write-Host "  ║     CIC BIM Addin - Chuong trinh cai dat     ║" -ForegroundColor Cyan
-Write-Host "  ║     Phien ban: 1.0.0                         ║" -ForegroundColor Cyan
+Write-Host "  ║     Phien ban: 1.0.4                         ║" -ForegroundColor Cyan
 Write-Host "  ╚═══════════════════════════════════════════════╝" -ForegroundColor Cyan
 Write-Host ""
 
@@ -71,7 +71,8 @@ if ($installed.Count -gt 0) {
     Write-Host "  ════════════════════════════════════════════" -ForegroundColor Green
     Write-Host ""
     Write-Host "  LUU Y: Hay dong Revit va mo lai de su dung CIC Tool." -ForegroundColor Yellow
-} else {
+}
+else {
     Write-Host "  ════════════════════════════════════════════" -ForegroundColor Red
     Write-Host "  ✗ KHONG TIM THAY FILE CAI DAT!" -ForegroundColor Red
     Write-Host "    Vui long kiem tra lai thu muc cai dat." -ForegroundColor Red

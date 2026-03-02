@@ -24,3 +24,12 @@ dist/
 
 # Large Revit files
 TemPlate/
+*.rvt
+*.rfa
+*.rte
+*.rft
+*.000*.rvt
+*.000*.rfa
+
+# Ignore auto-generated output
+*.xlsx

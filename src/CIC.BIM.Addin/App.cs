@@ -31,176 +31,154 @@ public class App : IExternalApplication
             // Create custom tab
             application.CreateRibbonTab(TabName);
 
-            // ═══ Panel: Quản lý Dữ liệu ═══
-            var panelData = application.CreateRibbonPanel(TabName, "Quản lý Dữ liệu");
             var assemblyPath = Assembly.GetExecutingAssembly().Location;
             var addinDir = Path.GetDirectoryName(assemblyPath)!;
             var toolsAssemblyPath = Path.Combine(addinDir, "CIC.BIM.Addin.Tools.dll");
+            var fmAssemblyPath = Path.Combine(addinDir, "CIC.BIM.Addin.FacilityMgmt.dll");
+
+            // ═════ 1. DATA & QUẢN LÝ ═════
+            var panelData = application.CreateRibbonPanel(TabName, "Data & Quản lý");
             
-            var btnParamManager = new PushButtonData(
-                "ParamManager",
-                "Quản lý\nTham số",
-                toolsAssemblyPath,
-                "CIC.BIM.Addin.Tools.Commands.ParamManagerCommand"
-            )
+            var btnParamManager = new PushButtonData("ParamManager", "Quản lý\nTham số", toolsAssemblyPath, "CIC.BIM.Addin.Tools.Commands.ParamManagerCommand")
             {
                 ToolTip = "Quản lý tham số cho tất cả đối tượng trong mô hình BIM",
-                LongDescription = "Công cụ quản lý dữ liệu & thông tin cốt lõi của CIC Add-in.\n" +
-                    "Hỗ trợ đa bộ môn: Kết cấu, Kiến trúc, Cơ điện, Đường ống.\n" +
-                    "Gán tham số tự động, chỉnh sửa thủ công, xuất Excel.",
+                LongDescription = "Công cụ quản lý dữ liệu & thông tin cốt lõi của CIC Add-in.\nHỗ trợ đa bộ môn: Kết cấu, Kiến trúc, Cơ điện, Đường ống.\nGán tham số tự động, chỉnh sửa thủ công, xuất Excel.",
                 LargeImage = LoadIcon("icon_assign_params.png")
             };
             panelData.AddItem(btnParamManager);
 
-            // Button 2: Tự động nối cấu kiện
-            var btnAutoJoint = new PushButtonData(
-                "AutoJoint",
-                "Tự động\nNối CK",
-                toolsAssemblyPath,
-                "CIC.BIM.Addin.Tools.Commands.AutoJointCommand"
-            )
+            // ═════ 2. DỰNG HÌNH ═════
+            var panelModelling = application.CreateRibbonPanel(TabName, "Dựng hình");
+            
+            var btnAutoJoint = new PushButtonData("AutoJoint", "Nối\nCấu Kiện", toolsAssemblyPath, "CIC.BIM.Addin.Tools.Commands.AutoJointCommand")
             {
                 ToolTip = "Tự động nối hình học giữa các cấu kiện giao nhau",
-                LongDescription = "Nối (Join) tự động cho cấu kiện kết cấu & kiến trúc.\n" +
-                    "Thiết lập thứ tự ưu tiên: Cột > Dầm > Tường > Sàn.\n" +
-                    "Hỗ trợ Join, UnJoin, Switch Join Order.",
+                LongDescription = "Nối (Join) tự động cho cấu kiện kết cấu & kiến trúc.\nThiết lập thứ tự ưu tiên: Cột > Dầm > Tường > Sàn.\nHỗ trợ Join, UnJoin, Switch Join Order.",
                 LargeImage = LoadIcon("icon_kc.png")
             };
-            panelData.AddItem(btnAutoJoint);
+            panelModelling.AddItem(btnAutoJoint);
 
-            // Button 3: Tô màu đối tượng
-            var btnColorOverride = new PushButtonData(
-                "ColorOverride",
-                "Tô màu\nĐối tượng",
-                toolsAssemblyPath,
-                "CIC.BIM.Addin.Tools.Commands.ColorOverrideCommand"
-            )
+            var btnPlaster = new PushButtonData("Plaster", "Hoàn\nThiện", toolsAssemblyPath, "CIC.BIM.Addin.Tools.Commands.PlasterCommand")
             {
-                ToolTip = "Tô màu đối tượng theo Category để dễ nhận biết",
-                LongDescription = "Gán màu cho từng Category trong View hiện tại.\n" +
-                    "Hỗ trợ chọn màu tùy chỉnh, bật/tắt từng category.\n" +
-                    "Có thể Reset về màu gốc bất cứ lúc nào.",
-                LargeImage = LoadIcon("icon_assign_params.png")
-            };
-            panelData.AddItem(btnColorOverride);
-
-            // ═══ Panel: Kết cấu ═══
-            var panelKC = application.CreateRibbonPanel(TabName, "Kết cấu");
-
-            // Button: Thống kê Ván khuôn
-            var btnFormwork = new PushButtonData(
-                "Formwork",
-                "Thống kê\nVán khuôn",
-                toolsAssemblyPath,
-                "CIC.BIM.Addin.Tools.Commands.FormworkCommand"
-            )
-            {
-                ToolTip = "Tính diện tích ván khuôn B3.2 và tạo ván khuôn 3D",
-                LongDescription = "Tính diện tích ván khuôn theo nguyên tắc:\n" +
-                    "Dầm (đáy+bên), Cột (bên), Sàn (đáy), Móng (đáy+bên).\n" +
-                    "Tự trừ giao nhau. Tạo DirectShape VK 3D màu nâu.",
-                LargeImage = LoadIcon("icon_formwork.png")
-            };
-            panelKC.AddItem(btnFormwork);
-
-            // Button: Trát tường
-            var btnPlaster = new PushButtonData(
-                "Plaster",
-                "Trát tường\nTheo phòng",
-                toolsAssemblyPath,
-                "CIC.BIM.Addin.Tools.Commands.PlasterCommand"
-            )
-            {
-                ToolTip = "Tạo lớp trát tường hoàn thiện theo phòng",
-                LongDescription = "Chọn phòng → tự động tạo tường trát bao quanh.\n" +
-                    "Hỗ trợ tùy chỉnh Wall Type và Floor Type.",
+                ToolTip = "Tạo lớp hoàn thiện (trát, sơn, ốp) theo phòng",
+                LongDescription = "Chọn phòng → tự động tạo tường/sàn hoàn thiện bao quanh.\nHỗ trợ tùy chỉnh Wall Type và Floor Type.",
                 LargeImage = LoadIcon("icon_plaster.png")
             };
-            panelKC.AddItem(btnPlaster);
+            panelModelling.AddItem(btnPlaster);
 
-            // Button: Room Bounding
-            var btnRoomBounding = new PushButtonData(
-                "SetRoomBounding",
-                "Bật Room\nBounding",
-                toolsAssemblyPath,
-                "CIC.BIM.Addin.Tools.Commands.SetRoomBoundingCommand"
-            )
-            {
-                ToolTip = "Bật Room Bounding cho link instances và cột",
-                LongDescription = "Tự động bật Room Bounding cho tất cả file link và cột.\n" +
-                    "Room sẽ nhận diện tường/cột từ file link kết cấu.\n" +
-                    "Chạy trước khi tạo Room hoặc trước khi chạy Trát tường.",
-                LargeImage = LoadIcon("icon_room_bounding.png")
+            var pullDownUtilData = new PulldownButtonData("ModellingUtils", "Tiện\ních") 
+            { 
+                LargeImage = LoadIcon("icon_room_bounding.png"),
+                ToolTip = "Các tiện ích hỗ trợ dựng hình"
             };
-            panelKC.AddItem(btnRoomBounding);
-
-            // ═══ Panel: Kiến trúc ═══
-            var panelKT = application.CreateRibbonPanel(TabName, "Kiến trúc");
-
-            // Button: Block từ CAD
-            var btnBlockCad = new PushButtonData(
-                "BlockCad",
-                "Tách Block\ntừ CAD",
-                toolsAssemblyPath,
-                "CIC.BIM.Addin.Tools.Commands.BlockCadCommand"
-            )
+            if (panelModelling.AddItem(pullDownUtilData) is PulldownButton pullDownUtil)
             {
-                ToolTip = "Tách và phân loại block từ bản vẽ CAD link",
-                LongDescription = "Quét file CAD link, liệt kê danh sách block.\n" +
-                    "Hỗ trợ phân loại và xử lý block.",
-                LargeImage = LoadIcon("icon_block_cad.png")
+                var btnRoomBounding = new PushButtonData("SetRoomBounding", "Bật Room Bounding", toolsAssemblyPath, "CIC.BIM.Addin.Tools.Commands.SetRoomBoundingCommand")
+                {
+                    ToolTip = "Bật Room Bounding cho link instances và cột",
+                    LongDescription = "Tự động bật Room Bounding cho tất cả file link và cột.\nTrợ giúp nhận diện phòng để chạy chức năng Hoàn Thiện.",
+                    Image = LoadIcon("icon_room_bounding.png"),
+                    LargeImage = LoadIcon("icon_room_bounding.png")
+                };
+                pullDownUtil.AddPushButton(btnRoomBounding);
+            }
+
+            // ═════ 3. CAD TO BIM ═════
+            var panelCAD = application.CreateRibbonPanel(TabName, "CAD to BIM");
+            
+            var pullDownCADData = new PulldownButtonData("CadTools", "Từ CAD") 
+            { 
+                LargeImage = LoadIcon("icon_block_cad.png"),
+                ToolTip = "Các công cụ chuyển đổi dữ liệu từ file CAD"
             };
-            panelKT.AddItem(btnBlockCad);
-
-            // ═══ Panel: Cơ điện (MEP) ═══
-            var panelMEP = application.CreateRibbonPanel(TabName, "Cơ điện");
-
-            // Button: Tạo ống gió từ CAD
-            var btnDuct = new PushButtonData(
-                "DuctFromCad",
-                "Ống gió\ntừ CAD",
-                toolsAssemblyPath,
-                "CIC.BIM.Addin.Tools.Commands.DuctFromCadCommand"
-            )
+            if (panelCAD.AddItem(pullDownCADData) is PulldownButton pullDownCAD)
             {
-                ToolTip = "Tạo ống gió từ bản vẽ CAD",
-                LongDescription = "Đọc đường dẫn ống gió từ CAD link.\n" +
-                    "Tự động tạo Duct trong Revit.",
-                LargeImage = LoadIcon("icon_duct.png")
-            };
-            panelMEP.AddItem(btnDuct);
+                var btnBlockCad = new PushButtonData("BlockCad", "Tách Block từ CAD", toolsAssemblyPath, "CIC.BIM.Addin.Tools.Commands.BlockCadCommand")
+                {
+                    ToolTip = "Tách và phân loại block từ bản vẽ CAD link",
+                    Image = LoadIcon("icon_block_cad.png"),
+                    LargeImage = LoadIcon("icon_block_cad.png")
+                };
+                pullDownCAD.AddPushButton(btnBlockCad);
 
-            // Button: Kiểm tra độ dốc ống
-            var btnPipeSlope = new PushButtonData(
-                "PipeSlope",
-                "Kiểm tra\nĐộ dốc ống",
-                toolsAssemblyPath,
-                "CIC.BIM.Addin.Tools.Commands.PipeSlopeCommand"
-            )
+                var btnDuct = new PushButtonData("DuctFromCad", "Ống gió từ CAD", toolsAssemblyPath, "CIC.BIM.Addin.Tools.Commands.DuctFromCadCommand")
+                {
+                    ToolTip = "Tạo ống gió từ bản vẽ CAD",
+                    Image = LoadIcon("icon_duct.png"),
+                    LargeImage = LoadIcon("icon_duct.png")
+                };
+                pullDownCAD.AddPushButton(btnDuct);
+            }
+
+            // ═════ 4. KIỂM TRA & HIỂN THỊ ═════
+            var panelQAQC = application.CreateRibbonPanel(TabName, "Kiểm tra & Hiển thị");
+            
+            var btnColorOverride = new PushButtonData("ColorOverride", "Tô màu\nĐối tượng", toolsAssemblyPath, "CIC.BIM.Addin.Tools.Commands.ColorOverrideCommand")
+            {
+                ToolTip = "Tô màu đối tượng theo Category để dễ nhận biết",
+                LargeImage = LoadIcon("icon_assign_params.png")
+            };
+            panelQAQC.AddItem(btnColorOverride);
+
+            var btnPipeSlope = new PushButtonData("PipeSlope", "Kiểm tra\nĐộ dốc ống", toolsAssemblyPath, "CIC.BIM.Addin.Tools.Commands.PipeSlopeCommand")
             {
                 ToolTip = "Kiểm tra và hiển thị độ dốc ống nước",
-                LongDescription = "Quét hệ thống ống, kiểm tra slope.\n" +
-                    "Cảnh báo ống không đạt độ dốc tối thiểu.",
                 LargeImage = LoadIcon("icon_pipe_slope.png")
             };
-            panelMEP.AddItem(btnPipeSlope);
+            panelQAQC.AddItem(btnPipeSlope);
 
-            // ═══ Panel: AI Hỗ trợ ═══
+            // ═════ 5. KHỐI LƯỢNG ═════
+            var panelQTO = application.CreateRibbonPanel(TabName, "Khối lượng");
+            
+            var btnSmartQTO = new PushButtonData("SmartQTO", "Bóc KL\nBOQ", toolsAssemblyPath, "CIC.BIM.Addin.Tools.Commands.SmartQTOCommand")
+            {
+                ToolTip = "Trích xuất và tính toán khối lượng tự động ra file Excel BOQ",
+                LongDescription = "Hỗ trợ bóc tách Thể tích bê tông, Diện tích ván khuôn, Xây trát...\nCho phép áp dụng toàn dự án hoặc chỉ cấu kiện đang chọn.",
+                LargeImage = LoadIcon("icon_qto_excel.png"),
+                Image = LoadIcon("icon_qto_excel.png")
+            };
+            
+            var btnFormwork = new PushButtonData("Formwork", "Thống kê\nVán khuôn", toolsAssemblyPath, "CIC.BIM.Addin.Tools.Commands.FormworkCommand")
+            {
+                ToolTip = "Tính diện tích ván khuôn B3.2 và tạo ván khuôn 3D",
+                LargeImage = LoadIcon("icon_formwork.png")
+            };
+
+            panelQTO.AddItem(btnSmartQTO);
+            panelQTO.AddItem(btnFormwork);
+
+            // ═════ 6. VẬN HÀNH (FM) ═════
+            var panelFM = application.CreateRibbonPanel(TabName, "Vận hành (FM)");
+
+            var btnAssignParams = new PushButtonData("AssignFMParams", "Gán tham số FM", fmAssemblyPath, "CIC.BIM.Addin.FacilityMgmt.Commands.AssignFMParamsCommand")
+            {
+                ToolTip = "Tạo và gán 8 Shared Parameters phục vụ quản lý vận hành",
+                Image = LoadIcon("icon_assign_params.png")
+            };
+            
+            var btnFillData = new PushButtonData("FillFMData", "Điền DL Vận hành", fmAssemblyPath, "CIC.BIM.Addin.FacilityMgmt.Commands.FillFMDataCommand")
+            {
+                ToolTip = "Tự động điền Location, Category, AssetCode",
+                Image = LoadIcon("icon_fill_data.png")
+            };
+            
+            var btnExport = new PushButtonData("ExportFMReport", "Xuất BC Vận hành", fmAssemblyPath, "CIC.BIM.Addin.FacilityMgmt.Commands.ExportFMReportCommand")
+            {
+                ToolTip = "Xuất danh sách thiết bị ra Excel",
+                Image = LoadIcon("icon_export_report.png")
+            };
+
+            panelFM.AddStackedItems(btnAssignParams, btnFillData, btnExport);
+
+            // ═════ 7. AI ═════
             try
             {
-                var panelAI = application.CreateRibbonPanel(TabName, "AI Ho tro");
+                var panelAI = application.CreateRibbonPanel(TabName, "AI Hỗ trợ");
 
-                var btnAIChat = new PushButtonData(
-                    "AIChat",
-                    "AI CIC",
-                    toolsAssemblyPath,
-                    "CIC.BIM.Addin.Tools.Commands.AIChatCommand"
-                )
+                var btnAIChat = new PushButtonData("AIChat", "AI CIC", toolsAssemblyPath, "CIC.BIM.Addin.Tools.Commands.AIChatCommand")
                 {
-                    ToolTip = "Hoi dap thong tin mo hinh BIM bang AI (Google Gemini)",
-                    LongDescription = "Su dung AI (Google Gemini) de tra loi cau hoi\n" +
-                        "ve thong tin trong mo hinh Revit.\n" +
-                        "Vi du: so luong cau kien, the tich, dien tich, phong...",
+                    ToolTip = "Hỏi đáp thông tin mô hình BIM bằng AI (Google Gemini)",
+                    LongDescription = "Sử dụng AI để trả lời câu hỏi về thông tin trong mô hình Revit.\nVí dụ: số lượng cấu kiện, thể tích...",
                     LargeImage = LoadIcon("icon_ai_chat.png")
                 };
                 panelAI.AddItem(btnAIChat);
@@ -209,60 +187,6 @@ public class App : IExternalApplication
             {
                 System.Diagnostics.Debug.WriteLine($"[CIC AI Panel] Init failed: {aiEx.Message}");
             }
-
-            // ═══ Panel: Quản lý Vận hành ═══
-            var panelFM = application.CreateRibbonPanel(TabName, PanelFM);
-
-            var fmAssemblyPath = Path.Combine(addinDir, "CIC.BIM.Addin.FacilityMgmt.dll");
-
-            // Button 1: Gán tham số FM
-            var btnAssignParams = new PushButtonData(
-                "AssignFMParams",
-                "Gán tham số\nVận hành",
-                fmAssemblyPath,
-                "CIC.BIM.Addin.FacilityMgmt.Commands.AssignFMParamsCommand"
-            )
-            {
-                ToolTip = "Tạo và gán 8 Shared Parameters phục vụ quản lý vận hành vào các MEP categories",
-                LongDescription = "Tự động tạo Shared Parameter file và bind các tham số FM " +
-                    "(AssetCode, Category, Location, Manufacturer, Model, MaintenanceCycle, Status, Condition) " +
-                    "vào các categories thiết bị MEP trong model.",
-                LargeImage = LoadIcon("icon_assign_params.png")
-            };
-            panelFM.AddItem(btnAssignParams);
-
-            // Button 2: Điền dữ liệu FM
-            var btnFillData = new PushButtonData(
-                "FillFMData",
-                "Điền dữ liệu\nVận hành",
-                fmAssemblyPath,
-                "CIC.BIM.Addin.FacilityMgmt.Commands.FillFMDataCommand"
-            )
-            {
-                ToolTip = "Tự động điền Location (từ Room/Space), Category, và AssetCode cho các thiết bị MEP",
-                LongDescription = "Quét toàn bộ thiết bị MEP trong model, tự động:\n" +
-                    "• Lấy tên Room/Space → gán vào Location\n" +
-                    "• Map Revit Category → FM Category (HVAC, Cơ điện, PCCC...)\n" +
-                    "• Sinh mã tài sản AssetCode theo format chuẩn",
-                LargeImage = LoadIcon("icon_fill_data.png")
-            };
-            panelFM.AddItem(btnFillData);
-
-            // Button 3: Xuất báo cáo FM
-            var btnExport = new PushButtonData(
-                "ExportFMReport",
-                "Xuất báo cáo\nVận hành",
-                fmAssemblyPath,
-                "CIC.BIM.Addin.FacilityMgmt.Commands.ExportFMReportCommand"
-            )
-            {
-                ToolTip = "Xuất danh sách tài sản/thiết bị ra file Excel",
-                LongDescription = "Export toàn bộ thiết bị MEP có tham số FM ra file Excel, " +
-                    "bao gồm: Mã tài sản, Tên, Phân loại, Vị trí, Nhà sản xuất, Model, " +
-                    "Chu kỳ bảo trì, Trạng thái, Tình trạng.",
-                LargeImage = LoadIcon("icon_export_report.png")
-            };
-            panelFM.AddItem(btnExport);
 
             // ═══ Analytics: Silent tracking for all users ═══
             // Wrapped in try-catch so FM module still works if Analytics fails
