@@ -1,0 +1,63 @@
+═══════════════════════════════════════════════════════════
+         CIC BIM ADDIN - HUONG DAN CAI DAT
+═══════════════════════════════════════════════════════════
+
+BUOC 1: Giai nen file ZIP
+─────────────────────────
+   - Click phai vao file ZIP → "Extract All..." (Giai nen tat ca)
+   - Chon thu muc bat ky de giai nen
+
+BUOC 2: Chay trinh cai dat
+─────────────────────────
+   - Mo thu muc vua giai nen
+   - Tim file "install.ps1"
+   - Click phai → "Run with PowerShell"
+   - Doi cho chuong trinh chay xong
+
+   *** Neu Windows hoi "Do you want to allow...":
+       Chon "Yes" hoac "Run anyway"
+   
+   *** Neu khong chay duoc PowerShell script:
+       Mo PowerShell (Admin) va chay lenh:
+       Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+       Sau do chay lai install.ps1
+
+BUOC 3: Khoi dong lai Revit
+─────────────────────────
+   - Dong tat ca cua so Revit dang mo
+   - Mo lai Revit
+   - Tab "CIC Tools" se xuat hien tren Ribbon
+
+═══════════════════════════════════════════════════════════
+CAC CONG CU CO TRONG CIC TOOL:
+═══════════════════════════════════════════════════════════
+
+QUAN LY DU LIEU:
+   • Quan ly Tham so    - Quan ly tham so cho cau kien BIM
+   • Tu dong Noi CK     - Tu dong noi hinh hoc giua cac cau kien
+   • To mau Doi tuong   - To mau cau kien theo Category
+
+KET CAU:
+   • Thong ke Van khuon - Tinh dien tich van khuon B3.2
+   • Trat tuong         - Tao lop trat tuong hoan thien
+   • Bat Room Bounding  - Bat Room Bounding cho link va cot
+
+KIEN TRUC:
+   • Tach Block tu CAD  - Tach va phan loai block tu CAD
+
+CO DIEN (MEP):
+   • Ong gio tu CAD     - Tao ong gio tu ban ve CAD
+   • Kiem tra Do doc ong - Kiem tra slope cua ong nuoc
+
+QUAN LY VAN HANH:
+   • Gan tham so VH     - Tao tham so Facility Management
+   • Dien du lieu VH    - Tu dong dien du lieu van hanh
+   • Xuat bao cao VH    - Xuat bao cao ra Excel
+
+AI HO TRO:
+   • AI CIC             - Hoi dap thong tin mo hinh BIM
+
+═══════════════════════════════════════════════════════════
+LIEN HE HO TRO:
+   Phong BIM - CIC Technology
+═══════════════════════════════════════════════════════════

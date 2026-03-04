@@ -5,7 +5,6 @@ obj/
 *.user
 *.userosscache
 *.sln.docstates
-dist/
 
 # IDE
 .vs/
@@ -18,7 +17,6 @@ packages/
 
 # Node
 node_modules/
-package-lock.json
 
 # Revit / BIM files
 TemPlate/
@@ -31,23 +29,6 @@ TemPlate/
 *.000*.rvt
 *.000*.rfa
 
-# Binary / Installer
-*.exe
-*.zip
-*.dll
-*.pdb
-*.msi
-CIC_BIM_Addin_Setup_*/
-
-# Build logs
-build_*.txt
-
 # Misc
 *.log
 *.tmp
-*.xlsx
-read_excel*.ps1
-ideas_data.tsv
-
-# Documents
-*.docx
