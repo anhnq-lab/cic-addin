@@ -5,6 +5,7 @@ obj/
 *.user
 *.userosscache
 *.sln.docstates
+dist/
 
 # IDE
 .vs/
@@ -15,21 +16,38 @@ obj/
 packages/
 *.nupkg
 
-# Misc
-*.log
-*.tmp
-read_excel*.ps1
-ideas_data.tsv
-dist/
+# Node
+node_modules/
+package-lock.json
 
-# Large Revit files
+# Revit / BIM files
 TemPlate/
 *.rvt
 *.rfa
 *.rte
 *.rft
+*.rfi
+*.ifc
 *.000*.rvt
 *.000*.rfa
 
-# Ignore auto-generated output
+# Binary / Installer
+*.exe
+*.zip
+*.dll
+*.pdb
+*.msi
+CIC_BIM_Addin_Setup_*/
+
+# Build logs
+build_*.txt
+
+# Misc
+*.log
+*.tmp
 *.xlsx
+read_excel*.ps1
+ideas_data.tsv
+
+# Documents
+*.docx

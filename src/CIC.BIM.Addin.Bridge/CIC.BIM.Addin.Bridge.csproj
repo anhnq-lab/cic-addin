@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>CIC.BIM.Addin.Bridge</RootNamespace>
+    <AssemblyName>CIC.BIM.Addin.Bridge</AssemblyName>
+  </PropertyGroup>
+
+  <!-- Reference Tools project to reuse existing services -->
+  <ItemGroup>
+    <ProjectReference Include="..\CIC.BIM.Addin.Tools\CIC.BIM.Addin.Tools.csproj" />
+  </ItemGroup>
+
+</Project>

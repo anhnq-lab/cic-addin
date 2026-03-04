@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Architecture;
 
@@ -5,7 +8,7 @@ namespace CIC.BIM.Addin.Tools.Services;
 
 /// <summary>
 /// Tạo tường hoàn thiện theo boundary của Room.
-/// Nguyên tắc: Room đã chuẩn rồi → lấy boundary → offset (nếu có) → tạo wall.
+/// Nguyên tắc: Room đã chuẩn rồi → lấy boundary Finish → offset vào trong ½ wall width → tạo wall.
 /// </summary>
 public class WallFinishService
 {
@@ -19,7 +22,7 @@ public class WallFinishService
 
         // Gắn tham biến tên Room vào element đã tạo
         public bool AssignRoomName { get; set; } = true;
-        public string RoomNameParam { get; set; } = "Comments"; // Tên parameter để ghi tên Room
+        public string RoomNameParam { get; set; } = "Comments";
 
         // Optional floor finish
         public bool CreateFloorFinish { get; set; } = false;
@@ -32,6 +35,7 @@ public class WallFinishService
         public int WallsCreated { get; set; }
         public int FloorsCreated { get; set; }
         public int RoomsProcessed { get; set; }
+        public int OpeningsCut { get; set; }
         public List<string> Warnings { get; set; } = new();
         public List<ElementId> CreatedWallIds { get; set; } = new();
         public List<ElementId> CreatedFloorIds { get; set; } = new();
@@ -66,9 +70,58 @@ public class WallFinishService
         return result;
     }
 
+    /// <summary>
+    /// Chỉ tạo sàn hoàn thiện (không tạo tường) — dùng cho tab Sàn riêng.
+    /// </summary>
+    public WallFinishResult ExecuteFloorOnly(Document doc, IList<Room> rooms, WallFinishOptions options)
+    {
+        var result = new WallFinishResult();
+
+        using var tg = new TransactionGroup(doc, "Tạo sàn hoàn thiện");
+        tg.Start();
+
+        foreach (var room in rooms)
+        {
+            try
+            {
+                var boundaryOpts = new SpatialElementBoundaryOptions
+                {
+                    SpatialElementBoundaryLocation = SpatialElementBoundaryLocation.Finish
+                };
+                var boundaries = room.GetBoundarySegments(boundaryOpts);
+                if (boundaries == null || boundaries.Count == 0)
+                {
+                    result.Warnings.Add($"Room '{room.Name}': không có boundary.");
+                    continue;
+                }
+
+                double offsetFeet = options.OffsetMm * MmToFeet;
+
+                using var tx = new Transaction(doc, $"Sàn HT - {room.Name}");
+                tx.Start();
+
+                CreateFloorFinish(doc, room, boundaries, offsetFeet, options, result);
+
+                tx.Commit();
+                result.RoomsProcessed++;
+            }
+            catch (Exception ex)
+            {
+                result.Warnings.Add($"Room '{room.Name}' (ID:{room.Id.IntegerValue}): {ex.Message}");
+            }
+        }
+
+        tg.Assimilate();
+        return result;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  CORE: ProcessRoom
+    // ═══════════════════════════════════════════════════════════════
+
     private void ProcessRoom(Document doc, Room room, WallFinishOptions options, WallFinishResult result)
     {
-        // Lấy boundary theo Finish location (mặt hoàn thiện room)
+        // Lấy boundary theo Finish location (mặt hoàn thiện = mặt trong tường gốc)
         var boundaryOpts = new SpatialElementBoundaryOptions
         {
             SpatialElementBoundaryLocation = SpatialElementBoundaryLocation.Finish
@@ -90,39 +143,61 @@ public class WallFinishService
         // Height: auto from room or user-specified
         double heightFeet = GetWallHeight(room, options);
         double baseOffset = options.BaseOffsetMm * MmToFeet;
-        double offsetFeet = options.OffsetMm * MmToFeet;
+        double userOffset = options.OffsetMm * MmToFeet; // User-specified boundary offset
+
+        // Lấy bề dày tường HT
+        double halfWidth = 0;
+        var wallType = doc.GetElement(options.WallTypeId) as WallType;
+        if (wallType != null)
+            halfWidth = wallType.Width / 2.0;
+
+        // Tâm room dùng để tính hướng "vào trong"
+        XYZ roomCenter = GetRoomCenter(room);
 
         using var tx = new Transaction(doc, $"Tường HT - {room.Name}");
         tx.Start();
 
-        // Process mỗi boundary loop (outer + inner holes)
+        // Track: boundary segment → finish wall (để cắt cửa sau)
+        var segmentWallMap = new List<(BoundarySegment Segment, Wall FinishWall)>();
+
+        // Process mỗi boundary loop
         foreach (var loop in boundaries)
         {
-            // Gom segments thành CurveLoop
-            var curveLoop = BuildCurveLoop(loop);
-            if (curveLoop == null || curveLoop.NumberOfCurves() == 0)
-                continue;
-
-            // Offset biên dạng (nếu có)
-            var workingLoop = ApplyOffset(curveLoop, offsetFeet, room.Name, result);
-
-            // Tạo wall cho từng curve trong loop
-            foreach (var curve in workingLoop)
+            foreach (var seg in loop)
             {
-                if (curve.ApproximateLength < 10 * MmToFeet) // Skip quá ngắn (<10mm)
-                    continue;
+                var curve = seg.GetCurve();
+                if (curve == null) continue;
+                if (curve.ApproximateLength < 10 * MmToFeet) continue; // Skip < 10mm
 
-                CreateFinishWall(doc, curve, options.WallTypeId, levelId,
+                // ═══ OFFSET TỪNG CURVE VÀO TRONG ROOM ═══
+                // Tính vector vuông góc hướng VÀO room
+                var offsetCurve = OffsetCurveInward(curve, roomCenter, halfWidth + userOffset);
+                if (offsetCurve == null)
+                {
+                    result.Warnings.Add($"Room '{room.Name}': Offset curve thất bại, dùng curve gốc.");
+                    offsetCurve = curve;
+                }
+
+                // Tạo tường HT
+                var finishWall = CreateFinishWall(doc, offsetCurve, options.WallTypeId, levelId,
                     heightFeet, baseOffset, options, result, room.Name);
+
+                if (finishWall != null)
+                {
+                    segmentWallMap.Add((seg, finishWall));
+                }
             }
         }
+
+        // ═══ CẮT Ô CỬA: detect doors/windows trên tường gốc → opening trên tường HT ═══
+        CutOpeningsForDoorWindows(doc, segmentWallMap, result, room.Name);
 
         // Optional: Tạo sàn hoàn thiện
         if (options.CreateFloorFinish && options.FloorTypeId != ElementId.InvalidElementId)
         {
             try
             {
-                CreateFloorFinish(doc, room, boundaries, offsetFeet, options, result);
+                CreateFloorFinish(doc, room, boundaries, userOffset, options, result);
             }
             catch (Exception ex)
             {
@@ -139,21 +214,39 @@ public class WallFinishService
         tx.Commit();
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    //  OFFSET: Dịch curve vào phía trong room
+    // ═══════════════════════════════════════════════════════════════
+
     /// <summary>
-    /// Gom BoundarySegment thành 1 CurveLoop khép kín.
+    /// Offset 1 curve vào phía trong room (hướng tâm room).
+    /// Dùng cho từng segment riêng lẻ, đáng tin cậy hơn CurveLoop offset.
     /// </summary>
-    private CurveLoop? BuildCurveLoop(IList<BoundarySegment> segments)
+    private Curve? OffsetCurveInward(Curve curve, XYZ roomCenter, double offsetDistance)
     {
+        if (Math.Abs(offsetDistance) < 1e-9)
+            return curve;
+
         try
         {
-            var curveLoop = new CurveLoop();
-            foreach (var seg in segments)
-            {
-                var c = seg.GetCurve();
-                if (c != null)
-                    curveLoop.Append(c);
-            }
-            return curveLoop;
+            // Lấy midpoint và tangent tại giữa curve
+            var midPoint = curve.Evaluate(0.5, true);
+            var tangent = (curve.GetEndPoint(1) - curve.GetEndPoint(0)).Normalize();
+
+            // Vector vuông góc (nằm ngang, vuông góc với curve)
+            var perpendicular = XYZ.BasisZ.CrossProduct(tangent).Normalize();
+
+            // Kiểm tra hướng: perpendicular phải chỉ VÀO room (hướng tâm)
+            var toCenter = new XYZ(roomCenter.X - midPoint.X, roomCenter.Y - midPoint.Y, 0).Normalize();
+            double dot = perpendicular.DotProduct(toCenter);
+
+            // Nếu perpendicular chỉ ra ngoài → đảo chiều
+            if (dot < 0)
+                perpendicular = perpendicular.Negate();
+
+            // Dịch curve theo hướng vào trong
+            var translation = Transform.CreateTranslation(perpendicular * offsetDistance);
+            return curve.CreateTransformed(translation);
         }
         catch
         {
@@ -162,37 +255,50 @@ public class WallFinishService
     }
 
     /// <summary>
-    /// Offset CurveLoop theo biên dạng room.
-    /// Dương = co vào trong (inward), Âm = nới ra ngoài.
+    /// Lấy tâm room (dùng Location hoặc trung bình boundary).
     /// </summary>
-    private CurveLoop ApplyOffset(CurveLoop original, double offsetFeet, string roomName, WallFinishResult result)
+    private XYZ GetRoomCenter(Room room)
     {
-        if (Math.Abs(offsetFeet) < 1e-9)
-            return original;
+        // Thử LocationPoint trước
+        if (room.Location is LocationPoint lp)
+            return lp.Point;
 
+        // Fallback: trung bình các boundary points
         try
         {
-            // CurveLoop.CreateViaOffset: offset theo normal (Z axis cho mặt phẳng ngang)
-            // Room boundary thường ngược chiều kim đồng hồ nhìn từ trên
-            // → offset dương = co vào trong
-            var offsetLoop = CurveLoop.CreateViaOffset(original, offsetFeet, XYZ.BasisZ);
-            return offsetLoop;
+            var opts = new SpatialElementBoundaryOptions();
+            var boundaries = room.GetBoundarySegments(opts);
+            if (boundaries != null && boundaries.Count > 0)
+            {
+                double sumX = 0, sumY = 0, sumZ = 0;
+                int count = 0;
+                foreach (var seg in boundaries[0])
+                {
+                    var pt = seg.GetCurve().GetEndPoint(0);
+                    sumX += pt.X; sumY += pt.Y; sumZ += pt.Z;
+                    count++;
+                }
+                if (count > 0)
+                    return new XYZ(sumX / count, sumY / count, sumZ / count);
+            }
         }
-        catch (Exception ex)
-        {
-            result.Warnings.Add($"Room '{roomName}': Offset thất bại ({ex.Message}), dùng biên gốc.");
-            return original;
-        }
+        catch { }
+
+        return XYZ.Zero;
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    //  TẠO TƯỜNG
+    // ═══════════════════════════════════════════════════════════════
+
     /// <summary>
-    /// Tạo 1 tường hoàn thiện.
+    /// Tạo 1 tường hoàn thiện. Trả về Wall để map với boundary segment.
     /// </summary>
-    private void CreateFinishWall(Document doc, Curve curve, ElementId typeId,
+    private Wall? CreateFinishWall(Document doc, Curve curve, ElementId typeId,
         ElementId levelId, double heightFeet, double baseOffset,
         WallFinishOptions options, WallFinishResult result, string roomName)
     {
-        if (typeId == ElementId.InvalidElementId) return;
+        if (typeId == ElementId.InvalidElementId) return null;
 
         try
         {
@@ -214,13 +320,78 @@ public class WallFinishService
 
                 result.CreatedWallIds.Add(wall.Id);
                 result.WallsCreated++;
+                return wall;
             }
         }
         catch (Exception ex)
         {
             result.Warnings.Add($"Wall in '{roomName}': {ex.Message}");
         }
+        return null;
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  CẮT Ô CỬA
+    // ═══════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Detect doors/windows trên tường gốc bao quanh room,
+    /// tạo opening tương ứng trên tường hoàn thiện.
+    /// </summary>
+    private void CutOpeningsForDoorWindows(Document doc,
+        List<(BoundarySegment Segment, Wall FinishWall)> segmentWallMap,
+        WallFinishResult result, string roomName)
+    {
+        foreach (var (seg, finishWall) in segmentWallMap)
+        {
+            try
+            {
+                // Lấy tường gốc từ boundary segment
+                var origWall = doc.GetElement(seg.ElementId) as Wall;
+                if (origWall == null) continue;
+
+                // Tìm tất cả inserts trên tường gốc (doors, windows, openings)
+                var inserts = origWall.FindInserts(true, true, true, true);
+                if (inserts == null || inserts.Count == 0) continue;
+
+                foreach (var insertId in inserts)
+                {
+                    var insertElem = doc.GetElement(insertId);
+                    if (insertElem == null) continue;
+
+                    // Chỉ xử lý doors và windows
+                    var catId = insertElem.Category?.Id.IntegerValue ?? 0;
+                    bool isDoor = catId == (int)BuiltInCategory.OST_Doors;
+                    bool isWindow = catId == (int)BuiltInCategory.OST_Windows;
+                    if (!isDoor && !isWindow) continue;
+
+                    var bbox = insertElem.get_BoundingBox(null);
+                    if (bbox == null) continue;
+
+                    try
+                    {
+                        // Tạo opening hình chữ nhật trên tường HT
+                        var pt1 = new XYZ(bbox.Min.X, bbox.Min.Y, bbox.Min.Z);
+                        var pt2 = new XYZ(bbox.Max.X, bbox.Max.Y, bbox.Max.Z);
+                        doc.Create.NewOpening(finishWall, pt1, pt2);
+                        result.OpeningsCut++;
+                    }
+                    catch
+                    {
+                        // NewOpening có thể fail nếu opening ngoài phạm vi wall → skip
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Warnings.Add($"Cut opening '{roomName}': {ex.Message}");
+            }
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  HELPERS
+    // ═══════════════════════════════════════════════════════════════
 
     private double GetWallHeight(Room room, WallFinishOptions options)
     {
@@ -246,7 +417,7 @@ public class WallFinishService
             var loop = BuildCurveLoop(boundaries[i]);
             if (loop == null) continue;
 
-            // Áp dụng cùng offset cho sàn
+            // Áp dụng offset cho sàn (dùng CurveLoop offset OK cho sàn vì chỉ co/giãn)
             if (Math.Abs(offsetFeet) > 1e-9)
             {
                 try
@@ -270,7 +441,6 @@ public class WallFinishService
             if (offsetParam != null && !offsetParam.IsReadOnly)
                 offsetParam.Set(options.FloorOffsetMm * MmToFeet);
 
-            // Gắn tên Room vào parameter
             if (options.AssignRoomName && !string.IsNullOrEmpty(options.RoomNameParam))
             {
                 SetElementParam(floor, options.RoomNameParam, room.Name);
@@ -278,6 +448,25 @@ public class WallFinishService
 
             result.CreatedFloorIds.Add(floor.Id);
             result.FloorsCreated++;
+        }
+    }
+
+    private CurveLoop? BuildCurveLoop(IList<BoundarySegment> segments)
+    {
+        try
+        {
+            var curveLoop = new CurveLoop();
+            foreach (var seg in segments)
+            {
+                var c = seg.GetCurve();
+                if (c != null)
+                    curveLoop.Append(c);
+            }
+            return curveLoop;
+        }
+        catch
+        {
+            return null;
         }
     }
 
@@ -290,7 +479,6 @@ public class WallFinishService
         var boundaries = room.GetBoundarySegments(boundaryOpts);
         if (boundaries == null) return;
 
-        // Collect original bounding element IDs
         var originalIds = new HashSet<ElementId>();
         foreach (var loop in boundaries)
         {
@@ -301,7 +489,6 @@ public class WallFinishService
             }
         }
 
-        // Join finish walls with originals
         foreach (var finishWallId in result.CreatedWallIds)
         {
             var finishWall = doc.GetElement(finishWallId);
@@ -317,14 +504,11 @@ public class WallFinishService
                     if (!JoinGeometryUtils.AreElementsJoined(doc, finishWall, origElem))
                         JoinGeometryUtils.JoinGeometry(doc, finishWall, origElem);
                 }
-                catch { /* Skip silently */ }
+                catch { }
             }
         }
     }
 
-    /// <summary>
-    /// Ghi giá trị string vào parameter theo tên.
-    /// </summary>
     private void SetElementParam(Element element, string paramName, string value)
     {
         var param = element.LookupParameter(paramName);

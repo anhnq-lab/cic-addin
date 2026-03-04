@@ -6,6 +6,7 @@ using Autodesk.Revit.UI.Events;
 using Autodesk.Windows;
 using CIC.BIM.Addin.Analytics.Commands;
 using CIC.BIM.Addin.Analytics.Services;
+using CIC.BIM.Addin.Bridge;
 
 namespace CIC.BIM.Addin;
 
@@ -20,6 +21,8 @@ public class App : IExternalApplication
 
     private static bool _colorApplied = false;
     private ActivityTracker? _activityTracker;
+    private RevitBridgeServer? _bridgeServer;
+    private RevitApiHandler? _bridgeHandler;
 
     public Result OnStartup(UIControlledApplication application)
     {
@@ -58,10 +61,10 @@ public class App : IExternalApplication
             };
             panelModelling.AddItem(btnAutoJoint);
 
-            var btnPlaster = new PushButtonData("Plaster", "Hoàn\nThiện", toolsAssemblyPath, "CIC.BIM.Addin.Tools.Commands.PlasterCommand")
+            var btnPlaster = new PushButtonData("Plaster", "Hoàn\nThiện", toolsAssemblyPath, "CIC.BIM.Addin.Tools.Commands.FinishingCommand")
             {
                 ToolTip = "Tạo lớp hoàn thiện (trát, sơn, ốp) theo phòng",
-                LongDescription = "Chọn phòng → tự động tạo tường/sàn hoàn thiện bao quanh.\nHỗ trợ tùy chỉnh Wall Type và Floor Type.",
+                LongDescription = "Tạo Room tự động, tường/sàn/dầm/cột hoàn thiện.\nHỗ trợ tùy chỉnh Wall Type, Floor Type và nhiều tùy chọn.",
                 LargeImage = LoadIcon("icon_plaster.png")
             };
             panelModelling.AddItem(btnPlaster);
@@ -108,6 +111,15 @@ public class App : IExternalApplication
                     LargeImage = LoadIcon("icon_duct.png")
                 };
                 pullDownCAD.AddPushButton(btnDuct);
+
+                var btnCadAutoDraw = new PushButtonData("CadAutoDraw", "Auto-Draw từ CAD", toolsAssemblyPath, "CIC.BIM.Addin.Tools.Commands.CadAutoDrawCommand")
+                {
+                    ToolTip = "Tự động vẽ đối tượng Revit từ file CAD link",
+                    LongDescription = "Scan layers/blocks từ CAD link → mapping sang đối tượng Revit.\nHỗ trợ: Wall, Column, Beam, Floor, Pipe, Duct, Cable Tray, Family Instance.",
+                    Image = LoadIcon("icon_block_cad.png"),
+                    LargeImage = LoadIcon("icon_block_cad.png")
+                };
+                pullDownCAD.AddPushButton(btnCadAutoDraw);
             }
 
             // ═════ 4. KIỂM TRA & HIỂN THỊ ═════
@@ -206,6 +218,20 @@ public class App : IExternalApplication
                 System.Diagnostics.Debug.WriteLine($"[CIC Analytics] Init failed: {analyticsEx.Message}");
             }
 
+            // ═══ Revit Bridge API Server ═══
+            try
+            {
+                _bridgeHandler = new RevitApiHandler();
+                var externalEvent = ExternalEvent.Create(_bridgeHandler);
+                _bridgeServer = new RevitBridgeServer(_bridgeHandler, externalEvent);
+                _bridgeServer.Start();
+                System.Diagnostics.Debug.WriteLine("[CIC Bridge] API Server started on http://localhost:52140/");
+            }
+            catch (Exception bridgeEx)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CIC Bridge] Init failed: {bridgeEx.Message}");
+            }
+
             // ═══ Register Idling event for tab color ═══
             // Tab color MUST be applied after UI is fully initialized
             application.Idling += OnIdlingApplyColor;
@@ -221,6 +247,10 @@ public class App : IExternalApplication
 
     public Result OnShutdown(UIControlledApplication application)
     {
+        // Stop Bridge server
+        _bridgeServer?.Dispose();
+        _bridgeServer = null;
+
         // Stop analytics tracking
         _activityTracker?.StopTracking();
         _activityTracker?.Dispose();

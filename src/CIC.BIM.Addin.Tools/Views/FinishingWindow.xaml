@@ -1,0 +1,349 @@
+<Window x:Class="CIC.BIM.Addin.Tools.Views.FinishingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Hoàn thiện — CIC Tools" 
+        Width="720" Height="750" ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        Background="#1E1E2E" Foreground="#CDD6F4">
+
+    <Window.Resources>
+        <ResourceDictionary Source="../Themes/ToolStyles.xaml"/>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ═══ HEADER ═══ -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <DockPanel>
+                <Border Style="{StaticResource DeptBadge}" Background="#1D3D2B" DockPanel.Dock="Right">
+                    <TextBlock Text="KT — Kiến trúc" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource GreenBrush}"/>
+                </Border>
+                <TextBlock Text="Hoàn thiện" FontSize="18" FontWeight="Bold"/>
+            </DockPanel>
+            <TextBlock Text="Tường, Dầm, Cột, Sàn hoàn thiện" FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0"/>
+            <Border Height="2" Background="{StaticResource GreenBrush}" Margin="0,10,0,0" Opacity="0.4"/>
+        </StackPanel>
+
+        <!-- ═══ TABCONTROL ═══ -->
+        <TabControl x:Name="MainTabControl" Grid.Row="1" Style="{StaticResource DarkTabControl}">
+
+            <!-- ══════════ TAB 1: TƯỜNG HOÀN THIỆN ══════════ -->
+            <TabItem Header="🧱 Tường" Style="{StaticResource DarkTabItem}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">
+                    <StackPanel>
+                        <Border Style="{StaticResource Card}">
+                            <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource TextSecBrush}"
+                                       Text="Room đã được tạo chuẩn → chọn loại tường hoàn thiện → offset biên dạng (nếu cần) → tạo tường bao quanh room."/>
+                        </Border>
+
+                        <!-- Selection Method -->
+                        <TextBlock Text="CHỌN ROOM" Style="{StaticResource SectionHeader}"/>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <RadioButton x:Name="RbPickRooms" Content="Pick chọn Room cần tạo" 
+                                             GroupName="WallCreationMethod" IsChecked="True"
+                                             Foreground="#CDD6F4" Margin="0,0,0,8" Checked="RbWallCreationMethod_Checked"/>
+                                <RadioButton x:Name="RbAllInView" Content="Toàn bộ Room hiển thị trên View" 
+                                             GroupName="WallCreationMethod"
+                                             Foreground="#CDD6F4" Margin="0,0,0,8" Checked="RbWallCreationMethod_Checked"/>
+                                <RadioButton x:Name="RbByParameter" Content="Lọc theo Parameter Room" 
+                                             GroupName="WallCreationMethod"
+                                             Foreground="#CDD6F4" Margin="0,0,0,8" Checked="RbWallCreationMethod_Checked"/>
+                                             
+                                <!-- Parameter Filter Options -->
+                                <StackPanel x:Name="PnlWallParameterOptions" Margin="20,8,0,0" Visibility="Collapsed">
+                                    <TextBlock Text="Chọn Parameter" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="CboWallRoomParameter" Style="{StaticResource DarkComboBox}"
+                                              Height="32" Margin="0,0,0,8"
+                                              SelectionChanged="CboWallRoomParameter_SelectionChanged">
+                                        <ComboBox.Resources>
+                                            <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#45475A"/>
+                                            <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#CDD6F4"/>
+                                            <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#585B70"/>
+                                            <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFFFFF"/>
+                                        </ComboBox.Resources>
+                                    </ComboBox>
+                                    <TextBlock Text="Giá trị Parameter (chọn hoặc nhập)" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="CboWallParameterValue" Style="{StaticResource DarkComboBox}"
+                                              Height="32" Margin="0,0,0,8"
+                                              IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True">
+                                        <ComboBox.Resources>
+                                            <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#45475A"/>
+                                            <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#CDD6F4"/>
+                                            <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#585B70"/>
+                                            <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFFFFF"/>
+                                        </ComboBox.Resources>
+                                    </ComboBox>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- LOẠI TƯỜNG -->
+                        <TextBlock Text="LOẠI TƯỜNG HOÀN THIỆN" Style="{StaticResource SectionHeader}"/>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Tìm kiếm loại tường" Style="{StaticResource FieldLabel}"/>
+                                <TextBox x:Name="TxtWallSearch" Style="{StaticResource DarkTextBox}" 
+                                         Margin="0,0,0,6" TextChanged="TxtWallSearch_TextChanged"/>
+                                <TextBlock Text="Wall Type" Style="{StaticResource FieldLabel}"/>
+                                <ComboBox x:Name="CboWallType" Style="{StaticResource DarkComboBox}"
+                                          DisplayMemberPath="Name" Height="32"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- CHIỀU CAO -->
+                        <TextBlock Text="CHIỀU CAO TƯỜNG" Style="{StaticResource SectionHeader}"/>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <RadioButton x:Name="RbHeightAuto" Content="Tự động theo chiều cao Room" 
+                                             GroupName="Height" IsChecked="True"
+                                             Foreground="#CDD6F4" Margin="0,0,0,6"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton x:Name="RbHeightCustom" Content="Tự nhập (mm):" 
+                                                 GroupName="Height" Foreground="#CDD6F4"
+                                                 VerticalAlignment="Center"/>
+                                    <TextBox x:Name="TxtCustomHeight" Text="3000" Width="80" 
+                                             Style="{StaticResource DarkTextBox}" Margin="8,0,0,0"
+                                             IsEnabled="{Binding IsChecked, ElementName=RbHeightCustom}"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- OFFSET BIÊN DẠNG -->
+                        <TextBlock Text="OFFSET BIÊN DẠNG ROOM (mm)" Style="{StaticResource SectionHeader}"/>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Offset ngang biên dạng" Style="{StaticResource FieldLabel}"/>
+                                <TextBox x:Name="TxtBoundaryOffset" Text="0" Style="{StaticResource DarkTextBox}"/>
+                                <TextBlock Text="Dương = co vào trong room, Âm = nới ra ngoài" 
+                                           FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- OFFSET ĐÁY -->
+                        <TextBlock Text="OFFSET ĐÁY (mm)" Style="{StaticResource SectionHeader}"/>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Offset đáy" Style="{StaticResource FieldLabel}"/>
+                                <TextBox x:Name="TxtBaseOffset" Text="0" Style="{StaticResource DarkTextBox}"/>
+                                <TextBlock Text="Giá trị dương = nâng lên, âm = hạ xuống" 
+                                           FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- GẮN TÊN ROOM -->
+                        <TextBlock Text="GẮN TÊN ROOM VÀO ELEMENT" Style="{StaticResource SectionHeader}"/>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <CheckBox x:Name="ChkAssignRoomName" Content="Gắn tên Room vào tường/sàn đã tạo"
+                                          Style="{StaticResource DarkCheckBox}" IsChecked="True"/>
+                                <StackPanel Margin="0,8,0,0"
+                                            IsEnabled="{Binding IsChecked, ElementName=ChkAssignRoomName}">
+                                    <TextBlock Text="Parameter để ghi tên Room" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="CboRoomNameParam" Style="{StaticResource DarkComboBox}"
+                                              Height="32" IsEditable="True">
+                                        <ComboBox.Resources>
+                                            <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#45475A"/>
+                                            <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#CDD6F4"/>
+                                            <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#585B70"/>
+                                            <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFFFFF"/>
+                                        </ComboBox.Resources>
+                                    </ComboBox>
+                                    <TextBlock Text="Mặc định: Comments. Có thể nhập tên parameter tùy chỉnh" 
+                                               FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- TÙY CHỌN -->
+                        <TextBlock Text="TÙY CHỌN" Style="{StaticResource SectionHeader}"/>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <CheckBox x:Name="ChkJoinGeometry" Content="Join với tường gốc"
+                                          Style="{StaticResource DarkCheckBox}" IsChecked="True"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ══════════ TAB 3: DẦM, CỘT HOÀN THIỆN ══════════ -->
+            <TabItem Header="🏗️ Dầm, Cột" Style="{StaticResource DarkTabItem}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">
+                    <StackPanel>
+                        <Border Style="{StaticResource Card}">
+                            <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource TextSecBrush}"
+                                       Text="Chọn dầm/cột kết cấu → bọc lớp tường hoàn thiện mỏng xung quanh. Tạo tường bao quanh theo mặt bên của cấu kiện."/>
+                        </Border>
+
+                        <!-- Chọn cấu kiện -->
+                        <TextBlock Text="CHỌN CẤU KIỆN" Style="{StaticResource SectionHeader}"/>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <RadioButton x:Name="RbPickBeamCol" Content="Pick chọn Dầm/Cột cần tạo"
+                                             GroupName="BeamColMethod" IsChecked="True"
+                                             Foreground="#CDD6F4" Margin="0,0,0,8"/>
+                                <RadioButton x:Name="RbAllBeamsInView" Content="Toàn bộ Dầm trên View"
+                                             GroupName="BeamColMethod"
+                                             Foreground="#CDD6F4" Margin="0,0,0,8"/>
+                                <RadioButton x:Name="RbAllColumnsInView" Content="Toàn bộ Cột trên View"
+                                             GroupName="BeamColMethod"
+                                             Foreground="#CDD6F4" Margin="0,0,0,8"/>
+                                <RadioButton x:Name="RbAllBeamColInView" Content="Toàn bộ Dầm + Cột trên View"
+                                             GroupName="BeamColMethod"
+                                             Foreground="#CDD6F4"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Loại tường bọc -->
+                        <TextBlock Text="LOẠI TƯỜNG BỌC" Style="{StaticResource SectionHeader}"/>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Tìm kiếm loại tường" Style="{StaticResource FieldLabel}"/>
+                                <TextBox x:Name="TxtBeamColWallSearch" Style="{StaticResource DarkTextBox}" 
+                                         Margin="0,0,0,6" TextChanged="TxtBeamColWallSearch_TextChanged"/>
+                                <TextBlock Text="Wall Type" Style="{StaticResource FieldLabel}"/>
+                                <ComboBox x:Name="CboBeamColWallType" Style="{StaticResource DarkComboBox}"
+                                          DisplayMemberPath="Name" Height="32"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Tùy chọn -->
+                        <TextBlock Text="TÙY CHỌN" Style="{StaticResource SectionHeader}"/>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <CheckBox x:Name="ChkBeamColJoin" Content="Join với cấu kiện gốc"
+                                          Style="{StaticResource DarkCheckBox}" IsChecked="True"/>
+                                <CheckBox x:Name="ChkBeamBottom" Content="Tạo cho mặt đáy Dầm"
+                                          Style="{StaticResource DarkCheckBox}" IsChecked="True" Margin="0,6,0,0"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                    <TextBlock Text="Offset (mm):" Style="{StaticResource FieldLabel}" 
+                                               VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <TextBox x:Name="TxtBeamColOffset" Text="0" Width="80" 
+                                             Style="{StaticResource DarkTextBox}"/>
+                                </StackPanel>
+                                <TextBlock Text="Giá trị dương = nới ra, âm = co vào" 
+                                           FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ══════════ TAB 4: SÀN HOÀN THIỆN ══════════ -->
+            <TabItem Header="📐 Sàn" Style="{StaticResource DarkTabItem}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">
+                    <StackPanel>
+                        <Border Style="{StaticResource Card}">
+                            <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource TextSecBrush}"
+                                       Text="Chọn Room → tạo sàn hoàn thiện theo boundary Room. Hỗ trợ offset và chọn Floor Type."/>
+                        </Border>
+
+                        <!-- Chọn Room -->
+                        <TextBlock Text="CHỌN ROOM" Style="{StaticResource SectionHeader}"/>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <RadioButton x:Name="RbFloorPickRooms" Content="Pick chọn Room cần tạo"
+                                             GroupName="FloorCreationMethod" IsChecked="True"
+                                             Foreground="#CDD6F4" Margin="0,0,0,8" Checked="RbFloorCreationMethod_Checked"/>
+                                <RadioButton x:Name="RbFloorAllInView" Content="Toàn bộ Room hiển thị trên View"
+                                             GroupName="FloorCreationMethod"
+                                             Foreground="#CDD6F4" Margin="0,0,0,8" Checked="RbFloorCreationMethod_Checked"/>
+                                <RadioButton x:Name="RbFloorByParameter" Content="Lọc theo Parameter Room"
+                                             GroupName="FloorCreationMethod"
+                                             Foreground="#CDD6F4" Margin="0,0,0,8" Checked="RbFloorCreationMethod_Checked"/>
+
+                                <!-- Parameter Filter -->
+                                <StackPanel x:Name="PnlFloorParameterOptions" Margin="20,8,0,0" Visibility="Collapsed">
+                                    <TextBlock Text="Chọn Parameter" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="CboFloorRoomParameter" Style="{StaticResource DarkComboBox}"
+                                              Height="32" Margin="0,0,0,8"
+                                              SelectionChanged="CboFloorRoomParameter_SelectionChanged">
+                                        <ComboBox.Resources>
+                                            <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#45475A"/>
+                                            <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#CDD6F4"/>
+                                            <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#585B70"/>
+                                            <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFFFFF"/>
+                                        </ComboBox.Resources>
+                                    </ComboBox>
+                                    <TextBlock Text="Giá trị Parameter" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="CboFloorParameterValue" Style="{StaticResource DarkComboBox}"
+                                              Height="32" IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True">
+                                        <ComboBox.Resources>
+                                            <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#45475A"/>
+                                            <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#CDD6F4"/>
+                                            <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#585B70"/>
+                                            <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFFFFF"/>
+                                        </ComboBox.Resources>
+                                    </ComboBox>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Loại sàn -->
+                        <TextBlock Text="LOẠI SÀN HOÀN THIỆN" Style="{StaticResource SectionHeader}"/>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Tìm kiếm loại sàn" Style="{StaticResource FieldLabel}"/>
+                                <TextBox x:Name="TxtFloorSearch" Style="{StaticResource DarkTextBox}" 
+                                         Margin="0,0,0,6" TextChanged="TxtFloorSearch_TextChanged"/>
+                                <TextBlock Text="Floor Type" Style="{StaticResource FieldLabel}"/>
+                                <ComboBox x:Name="CboFloorType" Style="{StaticResource DarkComboBox}"
+                                          DisplayMemberPath="Name" Height="32"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Offset sàn -->
+                        <TextBlock Text="OFFSET SÀN (mm)" Style="{StaticResource SectionHeader}"/>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Offset sàn hoàn thiện" Style="{StaticResource FieldLabel}"/>
+                                <TextBox x:Name="TxtFloorOffset" Text="0" Style="{StaticResource DarkTextBox}"/>
+                                <TextBlock Text="Giá trị dương = nâng lên, âm = hạ xuống" 
+                                           FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Offset biên dạng -->
+                        <TextBlock Text="OFFSET BIÊN DẠNG (mm)" Style="{StaticResource SectionHeader}"/>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Offset ngang biên dạng Room" Style="{StaticResource FieldLabel}"/>
+                                <TextBox x:Name="TxtFloorBoundaryOffset" Text="0" Style="{StaticResource DarkTextBox}"/>
+                                <TextBlock Text="Dương = co vào trong room, Âm = nới ra ngoài" 
+                                           FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Gắn tên Room -->
+                        <TextBlock Text="GẮN TÊN ROOM" Style="{StaticResource SectionHeader}"/>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <CheckBox x:Name="ChkFloorAssignRoomName" Content="Gắn tên Room vào sàn đã tạo"
+                                          Style="{StaticResource DarkCheckBox}" IsChecked="True"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+        </TabControl>
+
+        <!-- ═══ FOOTER ═══ -->
+        <DockPanel Grid.Row="2" Margin="0,16,0,0">
+            <Button x:Name="BtnCancel" Content="Huỷ" Style="{StaticResource SecondaryButton}"
+                    DockPanel.Dock="Right" Click="BtnCancel_Click" Margin="8,0,0,0"/>
+            <Button x:Name="BtnRun" Content="Bắt đầu tạo" Style="{StaticResource PrimaryButton}"
+                    Click="BtnRun_Click">
+                <Button.Resources>
+                    <SolidColorBrush x:Key="BlueBrush" Color="#A6E3A1"/>
+                </Button.Resources>
+            </Button>
+        </DockPanel>
+    </Grid>
+</Window>

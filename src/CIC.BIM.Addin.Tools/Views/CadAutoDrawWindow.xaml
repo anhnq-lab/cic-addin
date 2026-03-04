@@ -1,0 +1,165 @@
+<Window x:Class="CIC.BIM.Addin.Tools.Views.CadAutoDrawWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="📐 Auto-Draw từ CAD Link — B1.25"
+        Width="800" Height="720" ResizeMode="CanResize"
+        WindowStartupLocation="CenterScreen"
+        Background="#1E1E2E" Foreground="#CDD6F4">
+
+    <Window.Resources>
+        <ResourceDictionary Source="../Themes/ToolStyles.xaml"/>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ═══ HEADER ═══ -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <DockPanel>
+                <Border Style="{StaticResource DeptBadge}" Background="#1A3D2E" DockPanel.Dock="Right">
+                    <TextBlock Text="Đa bộ môn" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource GreenBrush}"/>
+                </Border>
+                <TextBlock Text="📐 Auto-Draw từ CAD Link" FontSize="18" FontWeight="Bold"/>
+            </DockPanel>
+            <TextBlock Text="B1.25 — Tự động vẽ đối tượng Revit từ Line/Block trong file CAD link" FontSize="11"
+                       Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0"/>
+            <Border Height="2" Background="{StaticResource GreenBrush}" Margin="0,10,0,0" Opacity="0.4"/>
+        </StackPanel>
+
+        <!-- ═══ CONTENT ═══ -->
+        <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Card 1: Chọn CAD Link -->
+            <Border Style="{StaticResource Card}" Grid.Row="0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                        <TextBlock Text="FILE CAD LINK" Style="{StaticResource SectionHeader}" Margin="0,0,0,6"/>
+                        <ComboBox x:Name="CboCadLink" Style="{StaticResource DarkComboBox}"
+                                  SelectionChanged="CboCadLink_SelectionChanged"/>
+                    </StackPanel>
+                    <Button x:Name="BtnScanLayers" Grid.Column="1" Content="🔍 Scan Layers"
+                            Style="{StaticResource SecondaryButton}" VerticalAlignment="Bottom"
+                            Click="BtnScanLayers_Click"/>
+                </Grid>
+            </Border>
+
+            <!-- Card 2: Cấu hình chung -->
+            <Border Style="{StaticResource Card}" Grid.Row="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                        <TextBlock Text="Level" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox x:Name="CboLevel" Style="{StaticResource DarkComboBox}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="8,0,8,0">
+                        <TextBlock Text="Chiều cao mặc định (mm)" Style="{StaticResource FieldLabel}"/>
+                        <TextBox x:Name="TxtHeight" Text="3000" Style="{StaticResource DarkTextBox}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Margin="8,0,0,0">
+                        <TextBlock Text="Offset (mm)" Style="{StaticResource FieldLabel}"/>
+                        <TextBox x:Name="TxtOffset" Text="0" Style="{StaticResource DarkTextBox}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Card 3: Mapping DataGrid -->
+            <Border Style="{StaticResource Card}" Grid.Row="2">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <TextBlock Text="MAPPING: LAYER CAD → ĐỐI TƯỢNG REVIT" Style="{StaticResource SectionHeader}"
+                                   DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0"/>
+                        <TextBlock x:Name="TxtLayerCount" Text="" FontSize="11"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   DockPanel.Dock="Right" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                    </DockPanel>
+                    <DataGrid x:Name="MappingGrid" AutoGenerateColumns="False"
+                              Background="#313244" Foreground="#CDD6F4"
+                              RowBackground="#313244" AlternatingRowBackground="#3B3D50"
+                              GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#45475A"
+                              BorderThickness="0" CanUserAddRows="False"
+                              HeadersVisibility="Column" FontSize="12"
+                              SelectionUnit="FullRow" SelectionMode="Single">
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="Background" Value="#45475A"/>
+                                <Setter Property="Foreground" Value="#A6ADC8"/>
+                                <Setter Property="Padding" Value="8,6"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="FontSize" Value="11"/>
+                            </Style>
+                        </DataGrid.ColumnHeaderStyle>
+                        <DataGrid.Columns>
+                            <DataGridCheckBoxColumn Header="✓" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="36"/>
+                            <DataGridTextColumn Header="Layer CAD" Binding="{Binding LayerName}" Width="*" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Lines" Binding="{Binding LineCount}" Width="55" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Blocks" Binding="{Binding BlockCount}" Width="55" IsReadOnly="True"/>
+                            <DataGridComboBoxColumn Header="Đối tượng Revit" x:Name="ColObjectType"
+                                                     SelectedItemBinding="{Binding ObjectType, UpdateSourceTrigger=PropertyChanged}"
+                                                     Width="130">
+                                <DataGridComboBoxColumn.EditingElementStyle>
+                                    <Style TargetType="ComboBox">
+                                        <Setter Property="Background" Value="#45475A"/>
+                                        <Setter Property="Foreground" Value="#CDD6F4"/>
+                                    </Style>
+                                </DataGridComboBoxColumn.EditingElementStyle>
+                            </DataGridComboBoxColumn>
+                            <DataGridComboBoxColumn Header="Revit Type" x:Name="ColRevitType"
+                                                     SelectedItemBinding="{Binding RevitTypeName, UpdateSourceTrigger=PropertyChanged}"
+                                                     Width="180">
+                                <DataGridComboBoxColumn.EditingElementStyle>
+                                    <Style TargetType="ComboBox">
+                                        <Setter Property="Background" Value="#45475A"/>
+                                        <Setter Property="Foreground" Value="#CDD6F4"/>
+                                    </Style>
+                                </DataGridComboBoxColumn.EditingElementStyle>
+                            </DataGridComboBoxColumn>
+                            <DataGridTextColumn Header="Size (mm)" Binding="{Binding Size, UpdateSourceTrigger=PropertyChanged}" Width="80"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </Border>
+
+            <!-- Card 4: Preview -->
+            <Border Style="{StaticResource Card}" Grid.Row="3">
+                <DockPanel>
+                    <TextBlock Text="📊" FontSize="13" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock x:Name="TxtPreview" Text="Chọn file CAD link và bấm Scan Layers để bắt đầu"
+                               FontSize="12" Foreground="{StaticResource TextSecBrush}" VerticalAlignment="Center"
+                               TextWrapping="Wrap"/>
+                </DockPanel>
+            </Border>
+        </Grid>
+
+        <!-- ═══ FOOTER ═══ -->
+        <DockPanel Grid.Row="2" Margin="0,12,0,0">
+            <Button x:Name="BtnCancel" Content="Hủy" Style="{StaticResource SecondaryButton}"
+                    DockPanel.Dock="Right" Click="BtnCancel_Click" Margin="8,0,0,0"/>
+            <Button x:Name="BtnRun" Content="▶ Chạy Auto-Draw" Style="{StaticResource PrimaryButton}"
+                    Click="BtnRun_Click" IsEnabled="False">
+                <Button.Resources>
+                    <SolidColorBrush x:Key="BlueBrush" Color="#A6E3A1"/>
+                </Button.Resources>
+            </Button>
+        </DockPanel>
+    </Grid>
+</Window>

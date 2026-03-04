@@ -19,6 +19,7 @@
     <ProjectReference Include="..\CIC.BIM.Addin.FacilityMgmt\CIC.BIM.Addin.FacilityMgmt.csproj" />
     <ProjectReference Include="..\CIC.BIM.Addin.Analytics\CIC.BIM.Addin.Analytics.csproj" />
     <ProjectReference Include="..\CIC.BIM.Addin.Tools\CIC.BIM.Addin.Tools.csproj" />
+    <ProjectReference Include="..\CIC.BIM.Addin.Bridge\CIC.BIM.Addin.Bridge.csproj" />
   </ItemGroup>
 
   <!-- Embed icons as resources -->
