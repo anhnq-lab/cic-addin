@@ -28,6 +28,10 @@ public class WallFinishService
         public bool CreateFloorFinish { get; set; } = false;
         public ElementId FloorTypeId { get; set; } = ElementId.InvalidElementId;
         public double FloorOffsetMm { get; set; } = 0;
+
+        // Nhận diện trần
+        public bool DetectCeiling { get; set; } = false;
+        public double CeilingOverlapMm { get; set; } = 50; // Trát quá trần thêm 50mm
     }
 
     public class WallFinishResult
@@ -36,6 +40,7 @@ public class WallFinishService
         public int FloorsCreated { get; set; }
         public int RoomsProcessed { get; set; }
         public int OpeningsCut { get; set; }
+        public int StairOpeningsCut { get; set; }
         public List<string> Warnings { get; set; } = new();
         public List<ElementId> CreatedWallIds { get; set; } = new();
         public List<ElementId> CreatedFloorIds { get; set; } = new();
@@ -140,8 +145,8 @@ public class WallFinishService
             return;
         }
 
-        // Height: auto from room or user-specified
-        double heightFeet = GetWallHeight(room, options);
+        // Height: auto from room, detect ceiling, or user-specified
+        double heightFeet = GetWallHeight(doc, room, options);
         double baseOffset = options.BaseOffsetMm * MmToFeet;
         double userOffset = options.OffsetMm * MmToFeet; // User-specified boundary offset
 
@@ -151,8 +156,7 @@ public class WallFinishService
         if (wallType != null)
             halfWidth = wallType.Width / 2.0;
 
-        // Tâm room dùng để tính hướng "vào trong"
-        XYZ roomCenter = GetRoomCenter(room);
+        double totalOffset = halfWidth + userOffset;
 
         using var tx = new Transaction(doc, $"Tường HT - {room.Name}");
         tx.Start();
@@ -163,34 +167,49 @@ public class WallFinishService
         // Process mỗi boundary loop
         foreach (var loop in boundaries)
         {
-            foreach (var seg in loop)
+            // ═══ THỬ OFFSET THEO CURVELOOP TRƯỚC (chính xác cho room lõm) ═══
+            var offsetCurves = TryOffsetLoop(loop, totalOffset);
+
+            if (offsetCurves != null)
             {
-                var curve = seg.GetCurve();
-                if (curve == null) continue;
-                if (curve.ApproximateLength < 10 * MmToFeet) continue; // Skip < 10mm
-
-                // ═══ OFFSET TỪNG CURVE VÀO TRONG ROOM ═══
-                // Tính vector vuông góc hướng VÀO room
-                var offsetCurve = OffsetCurveInward(curve, roomCenter, halfWidth + userOffset);
-                if (offsetCurve == null)
+                // Dùng kết quả CurveLoop offset
+                int segIdx = 0;
+                foreach (var offsetCurve in offsetCurves)
                 {
-                    result.Warnings.Add($"Room '{room.Name}': Offset curve thất bại, dùng curve gốc.");
-                    offsetCurve = curve;
+                    if (offsetCurve.ApproximateLength < 10 * MmToFeet) { segIdx++; continue; }
+
+                    var matchingSeg = segIdx < loop.Count ? loop[segIdx] : loop[loop.Count - 1];
+                    var finishWall = CreateFinishWall(doc, offsetCurve, options.WallTypeId, levelId,
+                        heightFeet, baseOffset, options, result, room.Name);
+                    if (finishWall != null)
+                        segmentWallMap.Add((matchingSeg, finishWall));
+                    segIdx++;
                 }
-
-                // Tạo tường HT
-                var finishWall = CreateFinishWall(doc, offsetCurve, options.WallTypeId, levelId,
-                    heightFeet, baseOffset, options, result, room.Name);
-
-                if (finishWall != null)
+            }
+            else
+            {
+                // ═══ FALLBACK: offset từng segment riêng lẻ ═══
+                XYZ roomCenter = GetRoomCenter(room);
+                foreach (var seg in loop)
                 {
-                    segmentWallMap.Add((seg, finishWall));
+                    var curve = seg.GetCurve();
+                    if (curve == null) continue;
+                    if (curve.ApproximateLength < 10 * MmToFeet) continue;
+
+                    var offsetCurve = OffsetCurveInward(curve, roomCenter, totalOffset);
+                    if (offsetCurve == null) offsetCurve = curve;
+
+                    var finishWall = CreateFinishWall(doc, offsetCurve, options.WallTypeId, levelId,
+                        heightFeet, baseOffset, options, result, room.Name);
+                    if (finishWall != null)
+                        segmentWallMap.Add((seg, finishWall));
                 }
             }
         }
 
-        // ═══ CẮT Ô CỬA: detect doors/windows trên tường gốc → opening trên tường HT ═══
-        CutOpeningsForDoorWindows(doc, segmentWallMap, result, room.Name);
+        // ═══ CẮT Ô CỬA + CẦU THANG ═══
+        CutOpeningsForInserts(doc, segmentWallMap, result, room.Name);
+        CutOpeningsForNearbyStairs(doc, result, room.Name);
 
         // Optional: Tạo sàn hoàn thiện
         if (options.CreateFloorFinish && options.FloorTypeId != ElementId.InvalidElementId)
@@ -212,6 +231,38 @@ public class WallFinishService
         }
 
         tx.Commit();
+    }
+
+    /// <summary>
+    /// Thử offset toàn bộ CurveLoop — chính xác cho room lõm/L-shape.
+    /// Trả về null nếu thất bại.
+    /// </summary>
+    private List<Curve>? TryOffsetLoop(IList<BoundarySegment> segments, double offsetDistance)
+    {
+        if (Math.Abs(offsetDistance) < 1e-9)
+        {
+            // Không offset → trả về curves gốc
+            return segments.Select(s => s.GetCurve()).Where(c => c != null).ToList()!;
+        }
+
+        try
+        {
+            var loop = new CurveLoop();
+            foreach (var seg in segments)
+            {
+                var c = seg.GetCurve();
+                if (c != null) loop.Append(c);
+            }
+
+            // CurveLoop.CreateViaOffset offset theo normal (BasisZ)
+            // Giá trị dương = co vào trong (nếu loop counterclockwise), xử lý đúng room lõm
+            var offsetLoop = CurveLoop.CreateViaOffset(loop, offsetDistance, XYZ.BasisZ);
+            return offsetLoop.ToList();
+        }
+        catch
+        {
+            return null; // Offset fail → fallback
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -335,10 +386,10 @@ public class WallFinishService
     // ═══════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Detect doors/windows trên tường gốc bao quanh room,
+    /// Detect doors/windows/stairs trên tường gốc bao quanh room,
     /// tạo opening tương ứng trên tường hoàn thiện.
     /// </summary>
-    private void CutOpeningsForDoorWindows(Document doc,
+    private void CutOpeningsForInserts(Document doc,
         List<(BoundarySegment Segment, Wall FinishWall)> segmentWallMap,
         WallFinishResult result, string roomName)
     {
@@ -359,11 +410,14 @@ public class WallFinishService
                     var insertElem = doc.GetElement(insertId);
                     if (insertElem == null) continue;
 
-                    // Chỉ xử lý doors và windows
+                    // Xử lý doors, windows VÀ stairs
                     var catId = insertElem.Category?.Id.IntegerValue ?? 0;
                     bool isDoor = catId == (int)BuiltInCategory.OST_Doors;
                     bool isWindow = catId == (int)BuiltInCategory.OST_Windows;
-                    if (!isDoor && !isWindow) continue;
+                    bool isStair = catId == (int)BuiltInCategory.OST_Stairs;
+                    bool isStairRun = catId == (int)BuiltInCategory.OST_StairsRuns;
+                    bool isStairLanding = catId == (int)BuiltInCategory.OST_StairsLandings;
+                    if (!isDoor && !isWindow && !isStair && !isStairRun && !isStairLanding) continue;
 
                     var bbox = insertElem.get_BoundingBox(null);
                     if (bbox == null) continue;
@@ -374,7 +428,11 @@ public class WallFinishService
                         var pt1 = new XYZ(bbox.Min.X, bbox.Min.Y, bbox.Min.Z);
                         var pt2 = new XYZ(bbox.Max.X, bbox.Max.Y, bbox.Max.Z);
                         doc.Create.NewOpening(finishWall, pt1, pt2);
-                        result.OpeningsCut++;
+
+                        if (isStair || isStairRun || isStairLanding)
+                            result.StairOpeningsCut++;
+                        else
+                            result.OpeningsCut++;
                     }
                     catch
                     {
@@ -389,14 +447,84 @@ public class WallFinishService
         }
     }
 
+    /// <summary>
+    /// Tìm cầu thang gần tường hoàn thiện (không nằm trên tường gốc)
+    /// và tạo opening trên tường HT.
+    /// </summary>
+    private void CutOpeningsForNearbyStairs(Document doc, WallFinishResult result, string roomName)
+    {
+        if (result.CreatedWallIds.Count == 0) return;
+
+        // Thu thập tất cả Stairs trong model
+        var stairs = new FilteredElementCollector(doc)
+            .OfCategory(BuiltInCategory.OST_Stairs)
+            .WhereElementIsNotElementType()
+            .ToList();
+
+        if (stairs.Count == 0) return;
+
+        // Duyệt qua mỗi finishing wall, kiểm tra giao với BoundingBox Stairs
+        foreach (var finishWallId in result.CreatedWallIds)
+        {
+            var finishWall = doc.GetElement(finishWallId) as Wall;
+            if (finishWall == null) continue;
+
+            var wallBBox = finishWall.get_BoundingBox(null);
+            if (wallBBox == null) continue;
+
+            foreach (var stairElem in stairs)
+            {
+                var stairBBox = stairElem.get_BoundingBox(null);
+                if (stairBBox == null) continue;
+
+                // Kiểm tra BoundingBox giao nhau (X-Y plane)
+                if (!BBoxOverlap2D(wallBBox, stairBBox)) continue;
+
+                try
+                {
+                    var pt1 = new XYZ(stairBBox.Min.X, stairBBox.Min.Y, stairBBox.Min.Z);
+                    var pt2 = new XYZ(stairBBox.Max.X, stairBBox.Max.Y, stairBBox.Max.Z);
+                    doc.Create.NewOpening(finishWall, pt1, pt2);
+                    result.StairOpeningsCut++;
+                }
+                catch
+                {
+                    // Opening ngoài phạm vi wall hoặc đã cut → skip
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Kiểm tra 2 BoundingBox giao nhau trên mặt phẳng XY (bỏ qua Z).
+    /// </summary>
+    private static bool BBoxOverlap2D(BoundingBoxXYZ a, BoundingBoxXYZ b)
+    {
+        // Mở rộng nhẹ tolerance (1mm = ~0.00328 feet)
+        const double tol = 0.01; // ~3mm tolerance
+        return a.Min.X - tol <= b.Max.X && a.Max.X + tol >= b.Min.X
+            && a.Min.Y - tol <= b.Max.Y && a.Max.Y + tol >= b.Min.Y;
+    }
+
     // ═══════════════════════════════════════════════════════════════
     //  HELPERS
     // ═══════════════════════════════════════════════════════════════
 
-    private double GetWallHeight(Room room, WallFinishOptions options)
+    private double GetWallHeight(Document doc, Room room, WallFinishOptions options)
     {
         if (options.HeightMm > 0)
             return options.HeightMm * MmToFeet;
+
+        // Nhận diện trần
+        if (options.DetectCeiling)
+        {
+            double ceilingHeight = FindCeilingHeightAboveRoom(doc, room);
+            if (ceilingHeight > 0)
+            {
+                // Trát quá trần thêm 1 khoảng
+                return ceilingHeight + options.CeilingOverlapMm * MmToFeet;
+            }
+        }
 
         double heightFeet = room.UnboundedHeight;
         if (heightFeet <= 0)
@@ -405,6 +533,52 @@ public class WallFinishService
             heightFeet = upperLimit?.AsDouble() ?? 3000 * MmToFeet;
         }
         return heightFeet;
+    }
+
+    /// <summary>
+    /// Tìm chiều cao trần phía trên Room (tính từ Level của Room).
+    /// Trả về chiều cao (feet) hoặc 0 nếu không tìm thấy trần.
+    /// </summary>
+    private double FindCeilingHeightAboveRoom(Document doc, Room room)
+    {
+        var roomLevelId = room.LevelId;
+        if (roomLevelId == ElementId.InvalidElementId) return 0;
+
+        var roomLevel = doc.GetElement(roomLevelId) as Level;
+        if (roomLevel == null) return 0;
+
+        // Lấy BoundingBox Room để so sánh overlap
+        var roomBBox = room.get_BoundingBox(null);
+        if (roomBBox == null) return 0;
+
+        // Tìm ceilings trên cùng Level hoặc gần room
+        var ceilings = new FilteredElementCollector(doc)
+            .OfCategory(BuiltInCategory.OST_Ceilings)
+            .WhereElementIsNotElementType()
+            .ToList();
+
+        double bestHeight = 0;
+
+        foreach (var ceiling in ceilings)
+        {
+            var ceilingBBox = ceiling.get_BoundingBox(null);
+            if (ceilingBBox == null) continue;
+
+            // Kiểm tra overlap XY với room
+            if (!BBoxOverlap2D(roomBBox, ceilingBBox)) continue;
+
+            // Lấy chiều cao thấp nhất của trần (mặt dưới)
+            double ceilingBottomZ = ceilingBBox.Min.Z;
+
+            // Tính chiều cao từ Level lên trần
+            double heightFromLevel = ceilingBottomZ - roomLevel.Elevation;
+            if (heightFromLevel > 0 && (bestHeight == 0 || heightFromLevel < bestHeight))
+            {
+                bestHeight = heightFromLevel;
+            }
+        }
+
+        return bestHeight;
     }
 
     private void CreateFloorFinish(Document doc, Room room, IList<IList<BoundarySegment>> boundaries,
@@ -472,6 +646,7 @@ public class WallFinishService
 
     /// <summary>
     /// Join lớp hoàn thiện với tường/cột gốc bao quanh room.
+    /// Chỉ join với Wall và FamilyInstance (cột), bỏ qua Room Separation Lines, Model Lines, v.v.
     /// </summary>
     private void JoinFinishWithOriginalElements(Document doc, Room room, WallFinishResult result)
     {
@@ -489,6 +664,14 @@ public class WallFinishService
             }
         }
 
+        // Chỉ join với các loại element hỗ trợ: Wall, FamilyInstance (cột)
+        var joinableCategories = new HashSet<int>
+        {
+            (int)BuiltInCategory.OST_Walls,
+            (int)BuiltInCategory.OST_StructuralColumns,
+            (int)BuiltInCategory.OST_Columns
+        };
+
         foreach (var finishWallId in result.CreatedWallIds)
         {
             var finishWall = doc.GetElement(finishWallId);
@@ -498,6 +681,10 @@ public class WallFinishService
             {
                 var origElem = doc.GetElement(origId);
                 if (origElem == null) continue;
+
+                // Bỏ qua Room Separation Lines, Model Lines, và các element không hỗ trợ join
+                var catId = origElem.Category?.Id.IntegerValue ?? 0;
+                if (!joinableCategories.Contains(catId)) continue;
 
                 try
                 {

@@ -47,8 +47,18 @@ public partial class FinishingWindow : Window
     public ElementId SelectedWallTypeId =>
         CboWallType.SelectedItem is WallType wt ? wt.Id : ElementId.InvalidElementId;
 
-    public double HeightMm =>
-        RbHeightAuto.IsChecked == true ? 0 : ParseMm(TxtCustomHeight.Text, 3000);
+    public double HeightMm
+    {
+        get
+        {
+            if (RbHeightAuto?.IsChecked == true) return 0;
+            if (RbHeightCeiling?.IsChecked == true) return 0;
+            return ParseMm(TxtCustomHeight.Text, 3000);
+        }
+    }
+
+    public bool DetectCeiling => RbHeightCeiling?.IsChecked == true;
+    public double CeilingOverlapMm => ParseMm(TxtCeilingOverlap?.Text ?? "50", 50);
 
     public double BaseOffsetMm => ParseMm(TxtBaseOffset.Text, 0);
     public double BoundaryOffsetMm => ParseMm(TxtBoundaryOffset.Text, 0);
@@ -288,7 +298,7 @@ public partial class FinishingWindow : Window
             var p = r.GetParameters(paramName).FirstOrDefault();
             if (p != null)
             {
-                var val = p.AsValueString() ?? p.AsString() ?? "";
+                string val = GetParameterDisplayValue(p);
                 if (!string.IsNullOrWhiteSpace(val))
                     values.Add(val);
             }
@@ -299,6 +309,36 @@ public partial class FinishingWindow : Window
             valueCombo.SelectedIndex = 0;
         else
             valueCombo.Text = "";
+    }
+
+    /// <summary>
+    /// Lấy giá trị hiển thị của parameter, hỗ trợ mọi StorageType.
+    /// </summary>
+    private string GetParameterDisplayValue(Parameter p)
+    {
+        // AsValueString() trả về giá trị formatted (ví dụ: "3000 mm")
+        var valStr = p.AsValueString();
+        if (!string.IsNullOrWhiteSpace(valStr)) return valStr;
+
+        switch (p.StorageType)
+        {
+            case StorageType.String:
+                return p.AsString() ?? "";
+            case StorageType.Integer:
+                return p.AsInteger().ToString();
+            case StorageType.Double:
+                return p.AsDouble().ToString("F2");
+            case StorageType.ElementId:
+                var elemId = p.AsElementId();
+                if (elemId != ElementId.InvalidElementId)
+                {
+                    var elem = _doc.GetElement(elemId);
+                    return elem?.Name ?? elemId.ToString();
+                }
+                return "";
+            default:
+                return "";
+        }
     }
 
     private void FilterWallTypes(string searchText, ComboBox targetCombo)

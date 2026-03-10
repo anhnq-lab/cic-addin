@@ -178,6 +178,186 @@ public class ColorOverrideService
         return resetCount;
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    //  MODE 2: BY PARAMETER VALUE
+    // ═══════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Thông tin một nhóm elements cùng giá trị parameter.
+    /// </summary>
+    public class ParameterValueColorInfo
+    {
+        public string ParameterValue { get; set; } = "";
+        public Color Color { get; set; } = new Color(200, 200, 200);
+        public bool IsEnabled { get; set; } = true;
+        public int ElementCount { get; set; }
+        public List<ElementId> ElementIds { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Lấy danh sách parameter names phổ biến từ elements trong view.
+    /// </summary>
+    public static List<string> GetParameterNamesInView(Document doc, View view)
+    {
+        var paramCounts = new Dictionary<string, int>();
+
+        var elements = new FilteredElementCollector(doc, view.Id)
+            .WhereElementIsNotElementType()
+            .ToElements();
+
+        foreach (var elem in elements)
+        {
+            if (elem.Category == null || string.IsNullOrEmpty(elem.Category.Name)) continue;
+
+            foreach (Parameter p in elem.Parameters)
+            {
+                if (p.Definition == null) continue;
+                var name = p.Definition.Name;
+                if (string.IsNullOrWhiteSpace(name)) continue;
+                if (p.IsReadOnly && p.StorageType == StorageType.None) continue;
+
+                if (!paramCounts.ContainsKey(name)) paramCounts[name] = 0;
+                paramCounts[name]++;
+            }
+        }
+
+        return paramCounts
+            .Where(kv => kv.Value >= 3)  // Chỉ hiện param có >= 3 elements
+            .OrderBy(kv => kv.Key)
+            .Select(kv => kv.Key)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Group elements theo giá trị của 1 parameter, kèm màu mặc định.
+    /// </summary>
+    public static List<ParameterValueColorInfo> GetElementsByParameterValue(
+        Document doc, View view, string parameterName)
+    {
+        var groups = new Dictionary<string, ParameterValueColorInfo>();
+        int colorIndex = 0;
+
+        var elements = new FilteredElementCollector(doc, view.Id)
+            .WhereElementIsNotElementType()
+            .ToElements();
+
+        foreach (var elem in elements)
+        {
+            if (elem.Category == null || string.IsNullOrEmpty(elem.Category.Name)) continue;
+
+            var param = elem.LookupParameter(parameterName);
+            string val = "(Trống)";
+
+            if (param != null)
+            {
+                var displayVal = param.AsValueString();
+                if (string.IsNullOrWhiteSpace(displayVal))
+                {
+                    switch (param.StorageType)
+                    {
+                        case StorageType.String:
+                            displayVal = param.AsString(); break;
+                        case StorageType.Integer:
+                            displayVal = param.AsInteger().ToString(); break;
+                        case StorageType.Double:
+                            displayVal = param.AsDouble().ToString("F2"); break;
+                        case StorageType.ElementId:
+                            var eId = param.AsElementId();
+                            if (eId != ElementId.InvalidElementId)
+                                displayVal = doc.GetElement(eId)?.Name ?? eId.ToString();
+                            break;
+                    }
+                }
+                if (!string.IsNullOrWhiteSpace(displayVal))
+                    val = displayVal;
+            }
+
+            if (!groups.ContainsKey(val))
+            {
+                groups[val] = new ParameterValueColorInfo
+                {
+                    ParameterValue = val,
+                    Color = DefaultPalette[colorIndex % DefaultPalette.Length],
+                    IsEnabled = true
+                };
+                colorIndex++;
+            }
+            groups[val].ElementCount++;
+            groups[val].ElementIds.Add(elem.Id);
+        }
+
+        return groups.Values.OrderBy(g => g.ParameterValue).ToList();
+    }
+
+    /// <summary>
+    /// Áp dụng override màu cho từng element (theo parameter value).
+    /// </summary>
+    public static ColorOverrideResult ApplyParameterColorOverrides(
+        Document doc, View view, List<ParameterValueColorInfo> groups)
+    {
+        var result = new ColorOverrideResult();
+        var solidFill = GetSolidFillPatternId(doc);
+
+        using var tx = new Transaction(doc, "CIC - Tô màu theo Parameter");
+        tx.Start();
+
+        foreach (var group in groups)
+        {
+            if (!group.IsEnabled) continue;
+
+            var ogs = new OverrideGraphicSettings();
+            ogs.SetSurfaceForegroundPatternColor(group.Color);
+            if (solidFill != ElementId.InvalidElementId)
+                ogs.SetSurfaceForegroundPatternId(solidFill);
+            ogs.SetProjectionLineColor(group.Color);
+            ogs.SetCutForegroundPatternColor(group.Color);
+            if (solidFill != ElementId.InvalidElementId)
+                ogs.SetCutForegroundPatternId(solidFill);
+            ogs.SetCutLineColor(group.Color);
+
+            foreach (var elemId in group.ElementIds)
+            {
+                try
+                {
+                    view.SetElementOverrides(elemId, ogs);
+                    result.ElementsColored++;
+                }
+                catch { result.Skipped++; }
+            }
+            result.CategoriesApplied++;
+        }
+
+        tx.Commit();
+        return result;
+    }
+
+    /// <summary>
+    /// Reset element-level overrides.
+    /// </summary>
+    public static int ResetElementOverrides(Document doc, View view, List<ParameterValueColorInfo> groups)
+    {
+        int resetCount = 0;
+
+        using var tx = new Transaction(doc, "CIC - Reset màu element");
+        tx.Start();
+
+        foreach (var group in groups)
+        {
+            foreach (var elemId in group.ElementIds)
+            {
+                try
+                {
+                    view.SetElementOverrides(elemId, new OverrideGraphicSettings());
+                    resetCount++;
+                }
+                catch { }
+            }
+        }
+
+        tx.Commit();
+        return resetCount;
+    }
+
     /// <summary>
     /// Lấy Solid Fill Pattern ID (dùng để tô bề mặt).
     /// </summary>

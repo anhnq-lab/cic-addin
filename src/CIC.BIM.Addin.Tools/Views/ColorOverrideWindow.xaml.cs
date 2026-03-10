@@ -15,8 +15,16 @@ public partial class ColorOverrideWindow : Window
     private readonly Document _doc;
     private readonly UIDocument _uiDoc;
     private readonly View _activeView;
-    private readonly List<ColorOverrideService.CategoryColorInfo> _categories;
+
+    // Mode: By Category
+    private List<ColorOverrideService.CategoryColorInfo> _categories;
     private readonly List<CheckBox> _checkBoxes = new();
+
+    // Mode: By Parameter
+    private List<ColorOverrideService.ParameterValueColorInfo>? _paramGroups;
+    private readonly List<CheckBox> _paramCheckBoxes = new();
+
+    private bool _isByParameter = false;
 
     public bool Applied { get; private set; }
 
@@ -31,6 +39,49 @@ public partial class ColorOverrideWindow : Window
         TxtStatus.Text = $"Tìm thấy {_categories.Count} categories trong view \"{_activeView.Name}\".";
     }
 
+    // ═══ Mode Toggle ═══
+
+    private void Mode_Changed(object sender, RoutedEventArgs e)
+    {
+        if (PnlParamSelect == null) return;
+
+        _isByParameter = RbByParameter.IsChecked == true;
+        PnlParamSelect.Visibility = _isByParameter ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+        TxtColHeader.Text = _isByParameter ? "Giá trị" : "Category";
+
+        if (_isByParameter)
+        {
+            // Load parameter names
+            var paramNames = ColorOverrideService.GetParameterNamesInView(_doc, _activeView);
+            CboParameter.ItemsSource = paramNames;
+            if (paramNames.Count > 0)
+                CboParameter.SelectedIndex = 0;
+            else
+            {
+                PanelCategories.Children.Clear();
+                TxtStatus.Text = "Không tìm thấy parameter nào trong view.";
+            }
+        }
+        else
+        {
+            BuildCategoryList();
+            TxtStatus.Text = $"Tìm thấy {_categories.Count} categories.";
+        }
+    }
+
+    private void CboParameter_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (CboParameter.SelectedItem == null) return;
+        var paramName = CboParameter.SelectedItem as string ?? "";
+        if (string.IsNullOrEmpty(paramName)) return;
+
+        _paramGroups = ColorOverrideService.GetElementsByParameterValue(_doc, _activeView, paramName);
+        BuildParameterValueList();
+        TxtStatus.Text = $"Parameter \"{paramName}\": {_paramGroups.Count} giá trị khác nhau.";
+    }
+
+    // ═══ Build Lists ═══
+
     private void BuildCategoryList()
     {
         PanelCategories.Children.Clear();
@@ -39,12 +90,35 @@ public partial class ColorOverrideWindow : Window
         for (int i = 0; i < _categories.Count; i++)
         {
             var info = _categories[i];
-            var row = CreateCategoryRow(info, i);
+            var row = CreateRow(info.CategoryName, info.ElementCount, info.Color, info.IsEnabled, i,
+                (idx, enabled) => _categories[idx].IsEnabled = enabled,
+                (idx, color) => _categories[idx].Color = color);
             PanelCategories.Children.Add(row);
         }
     }
 
-    private Border CreateCategoryRow(ColorOverrideService.CategoryColorInfo info, int index)
+    private void BuildParameterValueList()
+    {
+        PanelCategories.Children.Clear();
+        _paramCheckBoxes.Clear();
+
+        if (_paramGroups == null) return;
+
+        for (int i = 0; i < _paramGroups.Count; i++)
+        {
+            var group = _paramGroups[i];
+            var row = CreateRow(group.ParameterValue, group.ElementCount, group.Color, group.IsEnabled, i,
+                (idx, enabled) => { if (_paramGroups != null) _paramGroups[idx].IsEnabled = enabled; },
+                (idx, color) => { if (_paramGroups != null) _paramGroups[idx].Color = color; });
+            PanelCategories.Children.Add(row);
+        }
+    }
+
+    /// <summary>
+    /// Tạo 1 dòng trong danh sách (dùng chung cho cả Category và Parameter mode).
+    /// </summary>
+    private Border CreateRow(string name, int count, Autodesk.Revit.DB.Color color, bool enabled,
+        int index, Action<int, bool> onToggle, Action<int, Autodesk.Revit.DB.Color> onColorChange)
     {
         var grid = new System.Windows.Controls.Grid();
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) });
@@ -54,14 +128,17 @@ public partial class ColorOverrideWindow : Window
 
         var cb = new CheckBox
         {
-            IsChecked = info.IsEnabled,
+            IsChecked = enabled,
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Center,
             Tag = index
         };
-        cb.Checked += (s, e) => info.IsEnabled = true;
-        cb.Unchecked += (s, e) => info.IsEnabled = false;
-        _checkBoxes.Add(cb);
+        cb.Checked += (s, e) => onToggle(index, true);
+        cb.Unchecked += (s, e) => onToggle(index, false);
+        if (_isByParameter)
+            _paramCheckBoxes.Add(cb);
+        else
+            _checkBoxes.Add(cb);
         System.Windows.Controls.Grid.SetColumn(cb, 0);
         grid.Children.Add(cb);
 
@@ -71,30 +148,31 @@ public partial class ColorOverrideWindow : Window
             Height = 18,
             CornerRadius = new CornerRadius(3),
             Background = new SolidColorBrush(
-                System.Windows.Media.Color.FromRgb(info.Color.Red, info.Color.Green, info.Color.Blue)),
+                System.Windows.Media.Color.FromRgb(color.Red, color.Green, color.Blue)),
             Cursor = System.Windows.Input.Cursors.Hand,
             ToolTip = "Click để đổi màu",
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
             Tag = index
         };
-        colorRect.MouseLeftButtonDown += ColorSwatch_Click;
+        colorRect.MouseLeftButtonDown += (s, e) => ShowColorPopup(s as Border, index, onColorChange);
         System.Windows.Controls.Grid.SetColumn(colorRect, 1);
         grid.Children.Add(colorRect);
 
         var nameText = new TextBlock
         {
-            Text = info.CategoryName,
+            Text = name,
             FontSize = 12,
             VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(8, 0, 0, 0)
+            Margin = new Thickness(8, 0, 0, 0),
+            TextTrimming = TextTrimming.CharacterEllipsis
         };
         System.Windows.Controls.Grid.SetColumn(nameText, 2);
         grid.Children.Add(nameText);
 
         var countText = new TextBlock
         {
-            Text = info.ElementCount.ToString(),
+            Text = count.ToString(),
             FontSize = 12,
             Foreground = new SolidColorBrush(
                 System.Windows.Media.Color.FromRgb(0xF9, 0xE2, 0xAF)),
@@ -119,9 +197,11 @@ public partial class ColorOverrideWindow : Window
         return border;
     }
 
-    private void ColorSwatch_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    // ═══ Color Popup ═══
+
+    private void ShowColorPopup(Border? swatch, int index, Action<int, Autodesk.Revit.DB.Color> onColorChange)
     {
-        if (sender is not Border swatch || swatch.Tag is not int index) return;
+        if (swatch == null) return;
 
         var popup = new Popup
         {
@@ -168,7 +248,7 @@ public partial class ColorOverrideWindow : Window
             {
                 if (s2 is Border btn && btn.Tag is Autodesk.Revit.DB.Color newColor)
                 {
-                    _categories[index].Color = newColor;
+                    onColorChange(index, newColor);
                     swatch.Background = new SolidColorBrush(
                         System.Windows.Media.Color.FromRgb(newColor.Red, newColor.Green, newColor.Blue));
                     popup.IsOpen = false;
@@ -182,17 +262,26 @@ public partial class ColorOverrideWindow : Window
         popup.IsOpen = true;
     }
 
+    // ═══ Actions ═══
+
     private void BtnApply_Click(object sender, RoutedEventArgs e)
     {
         try
         {
-            var result = ColorOverrideService.ApplyColorOverrides(_doc, _activeView, _categories);
-            Applied = true;
-
-            // Force refresh view
-            try { _uiDoc.RefreshActiveView(); } catch { }
-
-            TxtStatus.Text = $"✅ Đã tô màu {result.CategoriesApplied} categories ({result.ElementsColored} elements).";
+            if (_isByParameter && _paramGroups != null)
+            {
+                var result = ColorOverrideService.ApplyParameterColorOverrides(_doc, _activeView, _paramGroups);
+                Applied = true;
+                try { _uiDoc.RefreshActiveView(); } catch { }
+                TxtStatus.Text = $"✅ Đã tô màu {result.CategoriesApplied} nhóm ({result.ElementsColored} elements).";
+            }
+            else
+            {
+                var result = ColorOverrideService.ApplyColorOverrides(_doc, _activeView, _categories);
+                Applied = true;
+                try { _uiDoc.RefreshActiveView(); } catch { }
+                TxtStatus.Text = $"✅ Đã tô màu {result.CategoriesApplied} categories ({result.ElementsColored} elements).";
+            }
         }
         catch (Exception ex)
         {
@@ -205,11 +294,18 @@ public partial class ColorOverrideWindow : Window
     {
         try
         {
-            int resetCount = ColorOverrideService.ResetOverrides(_doc, _activeView, _categories);
-
-            try { _uiDoc.RefreshActiveView(); } catch { }
-
-            TxtStatus.Text = $"↺ Đã reset {resetCount} categories về màu gốc.";
+            if (_isByParameter && _paramGroups != null)
+            {
+                int resetCount = ColorOverrideService.ResetElementOverrides(_doc, _activeView, _paramGroups);
+                try { _uiDoc.RefreshActiveView(); } catch { }
+                TxtStatus.Text = $"↺ Đã reset {resetCount} elements về màu gốc.";
+            }
+            else
+            {
+                int resetCount = ColorOverrideService.ResetOverrides(_doc, _activeView, _categories);
+                try { _uiDoc.RefreshActiveView(); } catch { }
+                TxtStatus.Text = $"↺ Đã reset {resetCount} categories về màu gốc.";
+            }
         }
         catch (Exception ex)
         {
@@ -220,14 +316,14 @@ public partial class ColorOverrideWindow : Window
 
     private void BtnSelectAll_Click(object sender, RoutedEventArgs e)
     {
-        foreach (var cb in _checkBoxes)
-            cb.IsChecked = true;
+        var boxes = _isByParameter ? _paramCheckBoxes : _checkBoxes;
+        foreach (var cb in boxes) cb.IsChecked = true;
     }
 
     private void BtnDeselectAll_Click(object sender, RoutedEventArgs e)
     {
-        foreach (var cb in _checkBoxes)
-            cb.IsChecked = false;
+        var boxes = _isByParameter ? _paramCheckBoxes : _checkBoxes;
+        foreach (var cb in boxes) cb.IsChecked = false;
     }
 
     private void BtnClose_Click(object sender, RoutedEventArgs e)

@@ -62,7 +62,9 @@ public class FinishingCommand : IExternalCommand
             JoinWithOriginal = window.JoinWithOriginal,
             AssignRoomName = window.AssignRoomName,
             RoomNameParam = window.RoomNameParam,
-            CreateFloorFinish = false // Sàn giờ có tab riêng
+            CreateFloorFinish = false, // Sàn giờ có tab riêng
+            DetectCeiling = window.DetectCeiling,
+            CeilingOverlapMm = window.CeilingOverlapMm
         };
 
         var service = new WallFinishService();

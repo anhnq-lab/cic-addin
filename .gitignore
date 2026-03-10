@@ -32,3 +32,6 @@ TemPlate/
 # Misc
 *.log
 *.tmp
+dist/
+.agent/
+comment/

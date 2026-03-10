@@ -91,7 +91,9 @@ public class PlasterCommand : IExternalCommand
             RoomNameParam = window.RoomNameParam,
             CreateFloorFinish = window.CreateFloorFinish,
             FloorTypeId = window.SelectedFloorTypeId,
-            FloorOffsetMm = window.FloorOffsetMm
+            FloorOffsetMm = window.FloorOffsetMm,
+            DetectCeiling = window.DetectCeiling,
+            CeilingOverlapMm = window.CeilingOverlapMm
         };
 
         // Step 4: Execute

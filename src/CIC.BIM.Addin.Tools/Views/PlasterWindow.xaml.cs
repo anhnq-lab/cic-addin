@@ -40,8 +40,18 @@ public partial class PlasterWindow : Window
     public ElementId SelectedFloorTypeId =>
         CboFloorType.SelectedItem is FloorType ft ? ft.Id : ElementId.InvalidElementId;
 
-    public double HeightMm =>
-        RbHeightAuto.IsChecked == true ? 0 : ParseMm(TxtCustomHeight.Text, 3000);
+    public double HeightMm
+    {
+        get
+        {
+            if (RbHeightAuto?.IsChecked == true) return 0;
+            if (RbHeightCeiling?.IsChecked == true) return 0; // Dùng ceiling detect
+            return ParseMm(TxtCustomHeight.Text, 3000);
+        }
+    }
+
+    public bool DetectCeiling => RbHeightCeiling?.IsChecked == true;
+    public double CeilingOverlapMm => ParseMm(TxtCeilingOverlap?.Text ?? "50", 50);
 
     public double BaseOffsetMm => ParseMm(TxtBaseOffset.Text, 0);
 

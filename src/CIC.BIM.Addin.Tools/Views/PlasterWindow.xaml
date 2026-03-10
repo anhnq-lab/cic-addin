@@ -101,6 +101,16 @@
                         <RadioButton x:Name="RbHeightAuto" Content="Tự động theo chiều cao Room" 
                                      GroupName="Height" IsChecked="True"
                                      Foreground="#CDD6F4" Margin="0,0,0,6"/>
+                        <RadioButton x:Name="RbHeightCeiling" Content="Nhận diện trần, trát quá trần 1 khoảng" 
+                                     GroupName="Height"
+                                     Foreground="#CDD6F4" Margin="0,0,0,6"/>
+                        <StackPanel Orientation="Horizontal" Margin="20,0,0,6"
+                                    IsEnabled="{Binding IsChecked, ElementName=RbHeightCeiling}">
+                            <TextBlock Text="Khoảng quá trần (mm):" Style="{StaticResource FieldLabel}" 
+                                       VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBox x:Name="TxtCeilingOverlap" Text="50" Width="80" 
+                                     Style="{StaticResource DarkTextBox}"/>
+                        </StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <RadioButton x:Name="RbHeightCustom" Content="Tự nhập (mm):" 
                                          GroupName="Height" Foreground="#CDD6F4"
