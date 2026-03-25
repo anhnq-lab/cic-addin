@@ -26,7 +26,7 @@ public enum RevitObjectType
 /// <summary>
 /// Thông tin 1 CAD link trong model.
 /// </summary>
-public record CadLinkInfo(ElementId Id, string FileName);
+public record CadLinkInfo(ElementId Id, string FileName, ElementId? RevitLinkInstanceId = null);
 
 /// <summary>
 /// Thông tin 1 layer trong file CAD.
@@ -85,32 +85,40 @@ public static class CadAutoDrawService
     {
         var result = new List<CadLinkInfo>();
 
-        var collector = new FilteredElementCollector(doc)
-            .OfClass(typeof(ImportInstance));
-
+        // 1. Scan in current doc
+        var collector = new FilteredElementCollector(doc).OfClass(typeof(ImportInstance));
         foreach (var elem in collector)
         {
             if (elem is not ImportInstance import) continue;
-
-            // Lấy tên file CAD
-            var name = "(Unknown)";
-            if (import.IsLinked)
-            {
-                var cadType = doc.GetElement(import.GetTypeId());
-                if (cadType != null)
-                    name = cadType.Name;
-            }
-            else
-            {
-                // Imported (not link)
-                var cadType = doc.GetElement(import.GetTypeId());
-                name = cadType?.Name ?? "(Imported)";
-            }
-
+            var name = GetImportName(doc, import);
             result.Add(new CadLinkInfo(elem.Id, name));
         }
 
+        // 2. Scan in Revit Links
+        var links = new FilteredElementCollector(doc).OfClass(typeof(RevitLinkInstance)).Cast<RevitLinkInstance>();
+        foreach (var linkInst in links)
+        {
+            var linkDoc = linkInst.GetLinkDocument();
+            if (linkDoc == null) continue;
+
+            var linkCollector = new FilteredElementCollector(linkDoc).OfClass(typeof(ImportInstance));
+            foreach (var elem in linkCollector)
+            {
+                if (elem is not ImportInstance import) continue;
+                var name = $"[{linkInst.Name}] {GetImportName(linkDoc, import)}";
+                result.Add(new CadLinkInfo(elem.Id, name, linkInst.Id));
+            }
+        }
+
         return result;
+    }
+
+    private static string GetImportName(Document doc, ImportInstance import)
+    {
+        var typeId = import.GetTypeId();
+        if (typeId == ElementId.InvalidElementId) return import.Name;
+        var cadType = doc.GetElement(typeId);
+        return cadType?.Name ?? import.Name;
     }
 
     /// <summary>
@@ -431,16 +439,17 @@ public static class CadAutoDrawService
         var offset = config.Offset * MmToFeet;
         var count = 0;
 
-        // Từ curves
+        // Từ curves (Line + Arc — Wall.Create hỗ trợ cả hai)
         if (curves.TryGetValue(layerName, out var layerCurves))
         {
             foreach (var curve in layerCurves)
             {
-                if (curve is Line line && line.Length > 0.01)
+                if (curve.Length < 0.01) continue;
+                if (curve is Line || curve is Arc)
                 {
                     try
                     {
-                        Wall.Create(doc, line, wallType.Id, level.Id, height, offset, false, false);
+                        Wall.Create(doc, curve, wallType.Id, level.Id, height, offset, false, false);
                         count++;
                     }
                     catch { /* skip invalid geometry */ }
@@ -487,11 +496,13 @@ public static class CadAutoDrawService
 
         foreach (var curve in layerCurves)
         {
-            if (curve is not Line line || line.Length < 0.01) continue;
+            if (curve.Length < 0.01) continue;
+            // Beam hỗ trợ cả Line và Arc curves
+            if (curve is not Line && curve is not Arc) continue;
             try
             {
-                // Beam tạo bằng NewFamilyInstance với line + structural type
-                var beam = doc.Create.NewFamilyInstance(line, symbol, level, StructuralType.Beam);
+                // Beam tạo bằng NewFamilyInstance với curve + structural type
+                var beam = doc.Create.NewFamilyInstance(curve, symbol, level, StructuralType.Beam);
                 if (beam != null)
                 {
                     // Set offset nếu cần

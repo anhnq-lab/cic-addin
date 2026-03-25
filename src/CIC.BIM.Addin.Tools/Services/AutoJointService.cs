@@ -156,6 +156,12 @@ public class AutoJointService
                     if (bbB == null || !BoundingBoxesIntersect(bbA, bbB))
                         continue;
 
+                    // Skip processed pairs
+                    long idA = beamA.Id.IntegerValue;
+                    long idB = beamB.Id.IntegerValue;
+                    var pair = idA < idB ? (idA, idB) : (idB, idA);
+                    if (!processedPairs.Add(pair)) continue;
+
                     try
                     {
                         if (!JoinGeometryUtils.AreElementsJoined(doc, beamA, beamB))

@@ -64,7 +64,7 @@ public partial class FinishingWindow : Window
     public double BoundaryOffsetMm => ParseMm(TxtBoundaryOffset.Text, 0);
     public bool JoinWithOriginal => ChkJoinGeometry.IsChecked == true;
     public bool AssignRoomName => ChkAssignRoomName.IsChecked == true;
-    public string RoomNameParam => CboRoomNameParam?.Text ?? "Comments";
+    public string RoomNameParam => CboRoomNameParam?.SelectedItem as string ?? "Comments";
 
     // ═══ Tab 2: Beam/Column Finish ═══
     public enum BeamColSelectionMethod { Pick, AllBeams, AllColumns, AllBoth }

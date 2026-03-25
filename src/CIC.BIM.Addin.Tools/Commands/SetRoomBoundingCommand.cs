@@ -3,6 +3,7 @@ using System.Linq;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
+using CIC.BIM.Addin.Tools.Services;
 
 namespace CIC.BIM.Addin.Tools.Commands;
 
@@ -15,6 +16,8 @@ public class SetRoomBoundingCommand : IExternalCommand
 {
     public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
     {
+        if (!AuthGuard.EnsureLoggedIn()) return Result.Cancelled;
+
         var doc = commandData.Application.ActiveUIDocument.Document;
         int linksSet = 0;
         int columnsSet = 0;

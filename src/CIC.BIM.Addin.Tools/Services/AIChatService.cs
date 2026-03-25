@@ -18,8 +18,8 @@ public class AIChatService : IDisposable
     private string _modelContext = "";
     private string _apiKey = "";
 
-    // Gemini API endpoint
-    private const string GeminiBaseUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+    // Gemini API endpoint — Gemini 2.5 Flash (nhanh, miễn phí, hỗ trợ thinking)
+    private const string GeminiBaseUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-04-17:generateContent";
 
     private const string SystemPrompt = @"Bạn là trợ lý AI chuyên về BIM (Building Information Modeling) cho dự án xây dựng.
 Bạn có quyền truy cập vào dữ liệu mô hình Revit được cung cấp bên dưới.
@@ -185,8 +185,8 @@ PHẠM VI HỖ TRỢ:
 
         // Generation config
         sb.Append("\"generationConfig\":{");
-        sb.Append("\"temperature\":0.3,");
-        sb.Append("\"maxOutputTokens\":2048");
+        sb.Append("\"temperature\":0.2,");
+        sb.Append("\"maxOutputTokens\":4096");
         sb.Append("}");
 
         sb.Append("}");

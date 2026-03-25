@@ -1,8 +1,8 @@
 <Window x:Class="CIC.BIM.Addin.Tools.Views.BlockCadWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="📦 Đặt thiết bị theo Block CAD — B1.23"
-        Width="680" Height="640" ResizeMode="CanResize"
+        Title="📦 Đặt thiết bị theo Block CAD — B1.24"
+        Width="950" Height="720" ResizeMode="CanResize"
         WindowStartupLocation="CenterScreen"
         Background="#1E1E2E" Foreground="#CDD6F4">
 
@@ -10,7 +10,7 @@
         <ResourceDictionary Source="../Themes/ToolStyles.xaml"/>
     </Window.Resources>
 
-    <Grid Margin="20">
+    <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -18,111 +18,222 @@
         </Grid.RowDefinitions>
 
         <!-- ═══ HEADER ═══ -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+        <StackPanel Grid.Row="0" Margin="0,0,0,10">
             <DockPanel>
                 <Border Style="{StaticResource DeptBadge}" Background="#3D2E1A" DockPanel.Dock="Right">
                     <TextBlock Text="MEP — Cơ điện" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AmberBrush}"/>
                 </Border>
                 <TextBlock Text="📦 Đặt thiết bị theo Block CAD" FontSize="18" FontWeight="Bold"/>
             </DockPanel>
-            <TextBlock Text="B1.23 — Block CAD → Equipment (Dynamic Block)" FontSize="11"
+            <TextBlock Text="Quét Block từ CAD → Chọn Family Revit → Tự động đặt đúng vị trí &amp; góc xoay" FontSize="11"
                        Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0"/>
-            <Border Height="2" Background="{StaticResource AmberBrush}" Margin="0,10,0,0" Opacity="0.4"/>
+            <Border Height="2" Background="{StaticResource AmberBrush}" Margin="0,8,0,0" Opacity="0.4"/>
         </StackPanel>
 
         <!-- ═══ CONTENT ═══ -->
         <Grid Grid.Row="1">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="300"/>
+            </Grid.ColumnDefinitions>
 
-            <Border Style="{StaticResource Card}" Grid.Row="0">
-                <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource TextSecBrush}"
-                           Text="Đọc Block CAD (bao gồm Dynamic Block) → tự đặt Family Revit tại đúng vị trí và góc xoay. Thiết lập mapping Block → Family bên dưới."/>
-            </Border>
+            <!-- ═══ LEFT PANEL ═══ -->
+            <Grid Grid.Column="0" Margin="0,0,10,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-            <!-- Filter -->
-            <Border Style="{StaticResource Card}" Grid.Row="1">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                <!-- Card 1: CAD Link -->
+                <Border Style="{StaticResource Card}" Grid.Row="0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <TextBlock Text="FILE CAD (LINK/IMPORT)" Style="{StaticResource SectionHeader}" Margin="0,0,0,6"/>
+                            <ComboBox x:Name="CboCadLink" Style="{StaticResource DarkComboBox}"
+                                      SelectionChanged="CboCadLink_SelectionChanged"/>
+                        </StackPanel>
+                        <Button x:Name="BtnPickCad" Grid.Column="1" Content="🎯 Pick CAD"
+                                Style="{StaticResource SecondaryButton}" VerticalAlignment="Bottom"
+                                Padding="8,4" Margin="0,0,8,0" Click="BtnPickCad_Click"
+                                ToolTip="Chọn file CAD trực tiếp trong view"/>
+                        <Button x:Name="BtnScanBlocks" Grid.Column="2" Content="🔍 Scan Blocks"
+                                Style="{StaticResource PrimaryButton}" VerticalAlignment="Bottom"
+                                Click="BtnScanBlocks_Click"/>
+                    </Grid>
+                </Border>
 
-                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                        <TextBlock Text="Layer CAD" Style="{StaticResource FieldLabel}"/>
-                        <TextBox x:Name="TxtLayer" Text="*" Style="{StaticResource DarkTextBox}"
-                                 ToolTip="Layer name hoặc * cho tất cả"/>
+                <!-- Card 2: Settings -->
+                <Border Style="{StaticResource Card}" Grid.Row="1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <TextBlock Text="Level đặt" Style="{StaticResource FieldLabel}"/>
+                            <ComboBox x:Name="CboLevel" Style="{StaticResource DarkComboBox}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Margin="4,0,4,0">
+                            <TextBlock Text="Offset (mm)" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="TxtElevation" Text="0" Style="{StaticResource DarkTextBox}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Margin="4,0,4,0">
+                            <TextBlock Text="Góc xoay (°)" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="TxtRotationOffset" Text="0" Style="{StaticResource DarkTextBox}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="3" Margin="8,0,0,0" VerticalAlignment="Bottom">
+                            <CheckBox x:Name="ChkRotation" Content="Xoay theo CAD"
+                                      Style="{StaticResource DarkCheckBox}" IsChecked="True"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Card 3: Mapping DataGrid -->
+                <Border Style="{StaticResource Card}" Grid.Row="2">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                            <TextBlock Text="DANH SÁCH BLOCK" Style="{StaticResource SectionHeader}"
+                                       DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                            <Button x:Name="BtnPickBlock" Content="🎯 Pick Block" 
+                                    Style="{StaticResource SecondaryButton}" Padding="8,2" FontSize="11"
+                                    DockPanel.Dock="Right" Margin="8,0,0,0" Click="BtnPickBlock_Click"
+                                    ToolTip="Chọn 1 block trong CAD để tự động lọc"/>
+                            <TextBlock x:Name="TxtBlockCount" Text="" FontSize="11"
+                                       Foreground="{StaticResource TextMutedBrush}"
+                                       DockPanel.Dock="Right" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                        </DockPanel>
+
+                        <!-- Filter -->
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                            <TextBlock Text="🔎" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBox x:Name="TxtFilter" Style="{StaticResource DarkTextBox}"
+                                     ToolTip="Lọc block theo tên..." TextChanged="TxtFilter_TextChanged"/>
+                        </DockPanel>
+
+                        <DataGrid x:Name="MappingGrid" AutoGenerateColumns="False"
+                                  Background="#313244" Foreground="#CDD6F4"
+                                  RowBackground="#313244" AlternatingRowBackground="#3B3D50"
+                                  GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#45475A"
+                                  BorderThickness="0" CanUserAddRows="False"
+                                  HeadersVisibility="Column" FontSize="12"
+                                  SelectionUnit="FullRow" SelectionMode="Single"
+                                  SelectionChanged="MappingGrid_SelectionChanged">
+                            <DataGrid.ColumnHeaderStyle>
+                                <Style TargetType="DataGridColumnHeader">
+                                    <Setter Property="Background" Value="#45475A"/>
+                                    <Setter Property="Foreground" Value="#A6ADC8"/>
+                                    <Setter Property="Padding" Value="8,6"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                    <Setter Property="FontSize" Value="11"/>
+                                </Style>
+                            </DataGrid.ColumnHeaderStyle>
+                            <DataGrid.Columns>
+                                <DataGridCheckBoxColumn Header="✓" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="32"/>
+                                <DataGridTextColumn Header="Block Name" Binding="{Binding BlockName}" Width="*" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="SL" Binding="{Binding Count}" Width="40" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Layer" Binding="{Binding LayerName}" Width="80" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Family → Type" Binding="{Binding FamilyDisplayName}" Width="180" IsReadOnly="True">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#A6E3A1"/>
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding FamilyDisplayName}" Value="">
+                                                    <Setter Property="Foreground" Value="#6C7086"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+                </Border>
+            </Grid>
+
+            <!-- ═══ RIGHT PANEL: Family Setting ═══ -->
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Family Setting (giống DSCons) -->
+                <Border Grid.Row="0" Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="GÁN FAMILY CHO BLOCK" Style="{StaticResource SectionHeader}" Margin="0,0,0,8"/>
+                        
+                        <TextBlock x:Name="TxtSelectedBlock" Text="— Chưa chọn block —" 
+                                   FontSize="13" FontWeight="Bold" Foreground="{StaticResource AmberBrush}" 
+                                   Margin="0,0,0,10" TextWrapping="Wrap"/>
+                        
+                        <!-- Category -->
+                        <TextBlock Text="Category" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox x:Name="CboCategory" Style="{StaticResource DarkComboBox}" Margin="0,0,0,8"
+                                  SelectionChanged="CboCategory_SelectionChanged"/>
+
+                        <!-- Family -->
+                        <TextBlock Text="Family" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox x:Name="CboFamily" Style="{StaticResource DarkComboBox}" Margin="0,0,0,8"
+                                  SelectionChanged="CboFamily_SelectionChanged" IsEditable="True"/>
+
+                        <!-- Type -->
+                        <TextBlock Text="Type" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox x:Name="CboType" Style="{StaticResource DarkComboBox}" Margin="0,0,0,10"
+                                  SelectionChanged="CboType_SelectionChanged"/>
+
+                        <!-- Nút gán -->
+                        <Button x:Name="BtnAssign" Content="✅ Gán Family cho Block này"
+                                Style="{StaticResource PrimaryButton}" FontSize="12"
+                                Click="BtnAssign_Click" IsEnabled="False"/>
                     </StackPanel>
-                    <StackPanel Grid.Column="1" Margin="8,0,8,0">
-                        <TextBlock Text="Cao độ mặc định (mm)" Style="{StaticResource FieldLabel}"/>
-                        <TextBox x:Name="TxtDefaultElevation" Text="0" Style="{StaticResource DarkTextBox}"/>
+                </Border>
+                
+                <!-- Family Preview -->
+                <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0,8,0,0">
+                    <StackPanel>
+                        <TextBlock Text="FAMILY PREVIEW" Style="{StaticResource SectionHeader}" Margin="0,0,0,6"/>
+                        <Border Background="#313244" CornerRadius="6" BorderBrush="#45475A" BorderThickness="1"
+                                Height="140">
+                            <Grid>
+                                <Image x:Name="ImgPreview" Margin="8" Stretch="Uniform"/>
+                                <TextBlock x:Name="TxtNoPreview" Text="Chưa chọn Family" 
+                                           Foreground="{StaticResource TextMutedBrush}"
+                                           VerticalAlignment="Center" HorizontalAlignment="Center"
+                                           Visibility="Visible"/>
+                            </Grid>
+                        </Border>
                     </StackPanel>
-                    <StackPanel Grid.Column="2" VerticalAlignment="Bottom">
-                        <CheckBox x:Name="ChkDynamicBlock" Content="Dynamic Block"
-                                  Style="{StaticResource DarkCheckBox}" IsChecked="True"/>
+                </Border>
+                
+                <!-- Tổng quan -->
+                <Border Grid.Row="3" Style="{StaticResource Card}" Margin="0,8,0,0">
+                    <StackPanel>
+                        <TextBlock Text="TỔNG QUAN" Style="{StaticResource SectionHeader}" Margin="0,0,0,4"/>
+                        <TextBlock x:Name="TxtPreview" Text="Chọn file CAD và bấm Scan Blocks để bắt đầu"
+                                   FontSize="11" Foreground="{StaticResource TextSecBrush}"
+                                   TextWrapping="Wrap"/>
                     </StackPanel>
-                </Grid>
-            </Border>
-
-            <!-- Mapping DataGrid -->
-            <Border Style="{StaticResource Card}" Grid.Row="2">
-                <DockPanel>
-                    <TextBlock Text="MAPPING: BLOCK CAD → FAMILY REVIT" Style="{StaticResource SectionHeader}"
-                               DockPanel.Dock="Top"/>
-                    <DataGrid x:Name="MappingGrid" AutoGenerateColumns="False"
-                              Background="#313244" Foreground="#CDD6F4"
-                              RowBackground="#313244" AlternatingRowBackground="#3B3D50"
-                              GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#45475A"
-                              BorderThickness="0" CanUserAddRows="True"
-                              HeadersVisibility="Column" FontSize="12">
-                        <DataGrid.ColumnHeaderStyle>
-                            <Style TargetType="DataGridColumnHeader">
-                                <Setter Property="Background" Value="#45475A"/>
-                                <Setter Property="Foreground" Value="#A6ADC8"/>
-                                <Setter Property="Padding" Value="8,6"/>
-                                <Setter Property="FontWeight" Value="SemiBold"/>
-                                <Setter Property="FontSize" Value="11"/>
-                            </Style>
-                        </DataGrid.ColumnHeaderStyle>
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Block Name (CAD)" Binding="{Binding BlockName}" Width="*"/>
-                            <DataGridTextColumn Header="Family Name (Revit)" Binding="{Binding FamilyName}" Width="*"/>
-                            <DataGridTextColumn Header="Type Name" Binding="{Binding TypeName}" Width="100"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
-                </DockPanel>
-            </Border>
-
-            <!-- Rotation option -->
-            <Border Style="{StaticResource Card}" Grid.Row="3">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Góc xoay:" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                    <RadioButton x:Name="RdoRotateFromCad" Content="Lấy từ Block CAD" Foreground="{StaticResource TextBrush}"
-                                 FontSize="12" IsChecked="True" VerticalAlignment="Center" Margin="0,0,16,0"/>
-                    <RadioButton x:Name="RdoRotateFixed" Content="Góc cố định:" Foreground="{StaticResource TextBrush}"
-                                 FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBox x:Name="TxtFixedRotation" Text="0" Width="50" Style="{StaticResource DarkTextBox}"
-                             VerticalAlignment="Center"/>
-                    <TextBlock Text="°" FontSize="12" VerticalAlignment="Center" Margin="4,0,0,0"/>
-                </StackPanel>
-            </Border>
+                </Border>
+            </Grid>
         </Grid>
 
         <!-- ═══ FOOTER ═══ -->
-        <DockPanel Grid.Row="2" Margin="0,16,0,0">
+        <DockPanel Grid.Row="2" Margin="0,10,0,0">
             <Button x:Name="BtnCancel" Content="Hủy" Style="{StaticResource SecondaryButton}"
                     DockPanel.Dock="Right" Click="BtnCancel_Click" Margin="8,0,0,0"/>
             <Button x:Name="BtnRun" Content="▶ Đặt thiết bị" Style="{StaticResource PrimaryButton}"
-                    Click="BtnRun_Click">
-                <Button.Resources>
-                    <SolidColorBrush x:Key="BlueBrush" Color="#FAB387"/>
-                </Button.Resources>
-            </Button>
+                    Click="BtnRun_Click" IsEnabled="False" Width="140" FontSize="14" FontWeight="Bold"/>
         </DockPanel>
     </Grid>
 </Window>

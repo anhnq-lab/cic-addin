@@ -3,6 +3,7 @@ using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using ClosedXML.Excel;
 using CIC.BIM.Addin.FacilityMgmt.Services;
+using CIC.BIM.Addin.Tools.Services;
 
 namespace CIC.BIM.Addin.FacilityMgmt.Commands;
 
@@ -15,6 +16,8 @@ public class ExportFMReportCommand : IExternalCommand
 {
     public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
     {
+        if (!AuthGuard.EnsureLoggedIn()) return Result.Cancelled;
+
         var doc = commandData.Application.ActiveUIDocument.Document;
 
         try

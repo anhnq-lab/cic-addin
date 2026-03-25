@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Architecture;
+using Autodesk.Revit.DB.Events;
 
 namespace CIC.BIM.Addin.Tools.Services;
 
@@ -160,6 +161,11 @@ public class WallFinishService
 
         using var tx = new Transaction(doc, $"Tường HT - {room.Name}");
         tx.Start();
+
+        // Suppress "joined but do not intersect" warnings
+        var failOpts = tx.GetFailureHandlingOptions();
+        failOpts.SetFailuresPreprocessor(new JoinWarningSwallower());
+        tx.SetFailureHandlingOptions(failOpts);
 
         // Track: boundary segment → finish wall (để cắt cửa sau)
         var segmentWallMap = new List<(BoundarySegment Segment, Wall FinishWall)>();
@@ -688,8 +694,12 @@ public class WallFinishService
 
                 try
                 {
-                    if (!JoinGeometryUtils.AreElementsJoined(doc, finishWall, origElem))
-                        JoinGeometryUtils.JoinGeometry(doc, finishWall, origElem);
+                    // Unjoin cặp cũ trước (nếu có) để tránh warning
+                    if (JoinGeometryUtils.AreElementsJoined(doc, finishWall, origElem))
+                        JoinGeometryUtils.UnjoinGeometry(doc, finishWall, origElem);
+
+                    // Join mới
+                    JoinGeometryUtils.JoinGeometry(doc, finishWall, origElem);
                 }
                 catch { }
             }
@@ -702,6 +712,23 @@ public class WallFinishService
         if (param != null && !param.IsReadOnly && param.StorageType == StorageType.String)
         {
             param.Set(value);
+        }
+    }
+
+    /// <summary>
+    /// Suppress "Highlighted elements are joined but do not intersect" warnings.
+    /// </summary>
+    private class JoinWarningSwallower : IFailuresPreprocessor
+    {
+        public FailureProcessingResult PreprocessFailures(FailuresAccessor failuresAccessor)
+        {
+            var failures = failuresAccessor.GetFailureMessages();
+            foreach (var f in failures)
+            {
+                if (f.GetSeverity() == FailureSeverity.Warning)
+                    failuresAccessor.DeleteWarning(f);
+            }
+            return FailureProcessingResult.Continue;
         }
     }
 }

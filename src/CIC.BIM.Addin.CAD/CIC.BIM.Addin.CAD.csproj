@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net48;net8.0-windows</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+
+  <!-- AutoCAD 2022 (.NET Framework 4.8) -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net48'">
+    <AutoCadPath>$(ProgramFiles)\Autodesk\AutoCAD 2022</AutoCadPath>
+    <OutputPath>..\..\bin\$(Configuration)\AutoCAD2022\</OutputPath>
+    <GenerateTargetPlatformAttribute>false</GenerateTargetPlatformAttribute>
+    <GenerateSupportedOSPlatformAttribute>false</GenerateSupportedOSPlatformAttribute>
+  </PropertyGroup>
+
+  <!-- AutoCAD 2025 (.NET 8.0) -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
+    <AutoCadPath>$(ProgramFiles)\Autodesk\AutoCAD 2025</AutoCadPath>
+    <OutputPath>..\..\bin\$(Configuration)\AutoCAD2025\</OutputPath>
+  </PropertyGroup>
+
+  <!-- AutoCAD API references -->
+  <ItemGroup>
+    <Reference Include="accoremgd">
+      <HintPath>$(AutoCadPath)\accoremgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="acdbmgd">
+      <HintPath>$(AutoCadPath)\acdbmgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="acmgd">
+      <HintPath>$(AutoCadPath)\acmgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="AdWindows">
+      <HintPath>$(AutoCadPath)\AdWindows.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- JSON serialization -->
+  <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+  </ItemGroup>
+
+  <!-- Polyfill for .NET 4.8 -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <Compile Include="$(MSBuildThisFileDirectory)..\IsExternalInit.cs" Link="Polyfills\IsExternalInit.cs" />
+  </ItemGroup>
+
+</Project>

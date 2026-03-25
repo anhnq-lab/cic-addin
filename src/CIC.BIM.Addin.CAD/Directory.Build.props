@@ -1,0 +1,3 @@
+<Project>
+  <!-- Override parent Directory.Build.props — CAD project không dùng Revit API -->
+</Project>

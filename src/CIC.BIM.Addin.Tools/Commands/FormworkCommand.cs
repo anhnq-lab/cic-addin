@@ -14,6 +14,8 @@ public class FormworkCommand : IExternalCommand
 {
     public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
     {
+        if (!AuthGuard.EnsureLoggedIn()) return Result.Cancelled;
+
         var uiDoc = commandData.Application.ActiveUIDocument;
         var doc = uiDoc.Document;
 

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ApplicationPackage SchemaVersion="1.0"
+                    Name="CIC Tools for AutoCAD"
+                    Description="CIC BIM Tools - Export Dynamic Blocks"
+                    AppVersion="1.0.0"
+                    Author="CIC Group"
+                    ProductCode="{7E2F8A5C-4B3D-4F1E-9A8B-1C2D3E4F5A6B}">
+  <CompanyDetails Name="CIC Group" />
+
+  <Components>
+    <!-- AutoCAD 2022-2024 (.NET Framework 4.8) -->
+    <ComponentEntry AppName="CIC_CAD_Tools_2022"
+                    Version="1.0.0"
+                    ModuleName="./Contents/2022/CIC.BIM.Addin.CAD.dll"
+                    AppDescription="CIC Tools CAD"
+                    LoadOnAutoCADStartup="True">
+      <RuntimeRequirements OS="Win64"
+                           Platform="AutoCAD*"
+                           SeriesMin="R24.0"
+                           SeriesMax="R24.3" />
+    </ComponentEntry>
+
+    <!-- AutoCAD 2025+ (.NET 8.0) -->
+    <ComponentEntry AppName="CIC_CAD_Tools_2025"
+                    Version="1.0.0"
+                    ModuleName="./Contents/2025/CIC.BIM.Addin.CAD.dll"
+                    AppDescription="CIC Tools CAD"
+                    LoadOnAutoCADStartup="True">
+      <RuntimeRequirements OS="Win64"
+                           Platform="AutoCAD*"
+                           SeriesMin="R25.0" />
+    </ComponentEntry>
+  </Components>
+</ApplicationPackage>

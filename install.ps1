@@ -9,7 +9,7 @@ $Host.UI.RawUI.WindowTitle = "CIC BIM Addin - Cai dat"
 Write-Host ""
 Write-Host "  ╔═══════════════════════════════════════════════╗" -ForegroundColor Cyan
 Write-Host "  ║     CIC BIM Addin - Chuong trinh cai dat     ║" -ForegroundColor Cyan
-Write-Host "  ║     Phien ban: 1.0.4                         ║" -ForegroundColor Cyan
+Write-Host "  ║     Phien ban: 1.0.6                         ║" -ForegroundColor Cyan
 Write-Host "  ╚═══════════════════════════════════════════════╝" -ForegroundColor Cyan
 Write-Host ""
 

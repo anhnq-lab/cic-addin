@@ -15,6 +15,8 @@ public class SmartQTOCommand : IExternalCommand
 {
     public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
     {
+        if (!AuthGuard.EnsureLoggedIn()) return Result.Cancelled;
+
         var uiapp = commandData.Application;
         var uidoc = uiapp.ActiveUIDocument;
         var doc = uidoc.Document;

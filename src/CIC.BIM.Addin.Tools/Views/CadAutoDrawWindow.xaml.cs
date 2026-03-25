@@ -70,21 +70,6 @@ public class CadLayerRow : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
-/// <summary>
-/// Helper record cho Level ComboBox items.
-/// </summary>
-public record LevelItem(ElementId Id, string Name)
-{
-    public override string ToString() => Name;
-}
-
-/// <summary>
-/// Helper record cho CAD Link ComboBox items.
-/// </summary>
-public record CadLinkItem(ElementId Id, string FileName)
-{
-    public override string ToString() => FileName;
-}
 
 public partial class CadAutoDrawWindow : Window
 {

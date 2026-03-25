@@ -183,102 +183,62 @@ public class BeamColumnFinishService
 
     /// <summary>
     /// Tạo tường bọc cho Dầm — 2 mặt bên + mặt đáy (tùy chọn).
+    /// Sử dụng LocationCurve để xác định phương dầm chính xác (hỗ trợ dầm xiên).
     /// </summary>
     private void CreateBeamFinish(Document doc, Element elem, BoundingBoxXYZ bbox, ElementId levelId,
         double offsetFeet, BeamColFinishOptions options, BeamColFinishResult result)
     {
         var min = bbox.Min;
         var max = bbox.Max;
-
-        // Xác định phương dầm (dọc theo trục dài hơn)
-        double dx = max.X - min.X;
-        double dy = max.Y - min.Y;
         double height = max.Z - min.Z;
         if (height <= 0) return;
 
         var level = doc.GetElement(levelId) as Level;
         double baseOffset = min.Z - (level?.Elevation ?? 0);
 
-        // 2 mặt bên (song song với trục dầm)
-        List<Line> sideLines;
-        if (dx >= dy)
+        // Lấy phương dầm từ LocationCurve (chính xác cho cả dầm xiên)
+        var locCurve = elem.Location as LocationCurve;
+        if (locCurve?.Curve != null)
         {
-            // Dầm chạy theo X
-            sideLines = new List<Line>
+            var curve = locCurve.Curve;
+            var startPt = curve.GetEndPoint(0);
+            var endPt = curve.GetEndPoint(1);
+
+            // Phương dầm (chiếu xuống mặt bằng)
+            var direction = new XYZ(endPt.X - startPt.X, endPt.Y - startPt.Y, 0).Normalize();
+            // Phương vuông góc trên mặt bằng
+            var perpendicular = new XYZ(-direction.Y, direction.X, 0);
+
+            // Chiều rộng dầm = bounding box width theo phương vuông góc
+            double beamWidth = 0;
+            var bbCenter = new XYZ((min.X + max.X) / 2, (min.Y + max.Y) / 2, 0);
+            // Dùng khoảng cách BBox theo phương vuông góc
+            double dx = max.X - min.X;
+            double dy = max.Y - min.Y;
+            beamWidth = Math.Min(dx, dy); // Chiều ngắn hơn ~ width
+
+            double halfWidth = beamWidth / 2 + offsetFeet;
+            var startZ = new XYZ(startPt.X, startPt.Y, min.Z);
+            var endZ = new XYZ(endPt.X, endPt.Y, min.Z);
+
+            // 2 mặt bên (song song với trục dầm, offset vuông góc)
+            var sideLines = new List<Line>
             {
                 Line.CreateBound(
-                    new XYZ(min.X, min.Y - offsetFeet, min.Z),
-                    new XYZ(max.X, min.Y - offsetFeet, min.Z)),
+                    startZ + perpendicular * halfWidth,
+                    endZ + perpendicular * halfWidth),
                 Line.CreateBound(
-                    new XYZ(min.X, max.Y + offsetFeet, min.Z),
-                    new XYZ(max.X, max.Y + offsetFeet, min.Z))
+                    startZ - perpendicular * halfWidth,
+                    endZ - perpendicular * halfWidth)
             };
-        }
-        else
-        {
-            // Dầm chạy theo Y
-            sideLines = new List<Line>
-            {
-                Line.CreateBound(
-                    new XYZ(min.X - offsetFeet, min.Y, min.Z),
-                    new XYZ(min.X - offsetFeet, max.Y, min.Z)),
-                Line.CreateBound(
-                    new XYZ(max.X + offsetFeet, min.Y, min.Z),
-                    new XYZ(max.X + offsetFeet, max.Y, min.Z))
-            };
-        }
 
-        foreach (var line in sideLines)
-        {
-            if (line.ApproximateLength < 10 * MmToFeet) continue;
-            try
+            foreach (var line in sideLines)
             {
-                var wall = Wall.Create(doc, line, options.WallTypeId, levelId,
-                    height, baseOffset, false, false);
-
-                if (wall != null)
-                {
-                    var structParam = wall.get_Parameter(BuiltInParameter.WALL_STRUCTURAL_SIGNIFICANT);
-                    if (structParam != null && !structParam.IsReadOnly)
-                        structParam.Set(0);
-
-                    result.CreatedWallIds.Add(wall.Id);
-                    result.WallsCreated++;
-                }
-            }
-            catch (System.Exception ex)
-            {
-                result.Warnings.Add($"Dầm side wall: {ex.Message}");
-            }
-        }
-
-        // Mặt đáy (nếu chọn)
-        if (options.IncludeBeamBottom)
-        {
-            Line? bottomLine;
-            if (dx >= dy)
-            {
-                bottomLine = Line.CreateBound(
-                    new XYZ(min.X, (min.Y + max.Y) / 2, min.Z),
-                    new XYZ(max.X, (min.Y + max.Y) / 2, min.Z));
-            }
-            else
-            {
-                bottomLine = Line.CreateBound(
-                    new XYZ((min.X + max.X) / 2, min.Y, min.Z),
-                    new XYZ((min.X + max.X) / 2, max.Y, min.Z));
-            }
-
-            if (bottomLine != null && bottomLine.ApproximateLength >= 10 * MmToFeet)
-            {
+                if (line.ApproximateLength < 10 * MmToFeet) continue;
                 try
                 {
-                    double bottomWallWidth = dy >= dx ? (max.X - min.X) : (max.Y - min.Y);
-                    double bottomHeight = bottomWallWidth + 2 * offsetFeet;
-                    if (bottomHeight <= 0) bottomHeight = 100 * MmToFeet;
-
-                    var wall = Wall.Create(doc, bottomLine, options.WallTypeId, levelId,
-                        bottomHeight, baseOffset, false, false);
+                    var wall = Wall.Create(doc, line, options.WallTypeId, levelId,
+                        height, baseOffset, false, false);
 
                     if (wall != null)
                     {
@@ -292,8 +252,119 @@ public class BeamColumnFinishService
                 }
                 catch (System.Exception ex)
                 {
-                    result.Warnings.Add($"Dầm bottom wall: {ex.Message}");
+                    result.Warnings.Add($"Dầm side wall: {ex.Message}");
                 }
+            }
+
+            // Mặt đáy (nếu chọn): tường chạy dọc giữa dầm
+            if (options.IncludeBeamBottom)
+            {
+                var bottomLine = Line.CreateBound(startZ, endZ);
+
+                if (bottomLine.ApproximateLength >= 10 * MmToFeet)
+                {
+                    try
+                    {
+                        double bottomHeight = beamWidth + 2 * offsetFeet;
+                        if (bottomHeight <= 0) bottomHeight = 100 * MmToFeet;
+
+                        var wall = Wall.Create(doc, bottomLine, options.WallTypeId, levelId,
+                            bottomHeight, baseOffset, false, false);
+
+                        if (wall != null)
+                        {
+                            var structParam = wall.get_Parameter(BuiltInParameter.WALL_STRUCTURAL_SIGNIFICANT);
+                            if (structParam != null && !structParam.IsReadOnly)
+                                structParam.Set(0);
+
+                            result.CreatedWallIds.Add(wall.Id);
+                            result.WallsCreated++;
+                        }
+                    }
+                    catch (System.Exception ex)
+                    {
+                        result.Warnings.Add($"Dầm bottom wall: {ex.Message}");
+                    }
+                }
+            }
+
+            return; // Done with LocationCurve-based approach
+        }
+
+        // Fallback: dầm không có LocationCurve → dùng BoundingBox (cũ)
+        CreateBeamFinishFromBBox(doc, elem, bbox, levelId, baseOffset, height, offsetFeet, options, result);
+    }
+
+    /// <summary>
+    /// Fallback: tạo tường bọc dầm khi không có LocationCurve (dựa trên BoundingBox).
+    /// </summary>
+    private void CreateBeamFinishFromBBox(Document doc, Element elem, BoundingBoxXYZ bbox, ElementId levelId,
+        double baseOffset, double height, double offsetFeet, BeamColFinishOptions options, BeamColFinishResult result)
+    {
+        var min = bbox.Min;
+        var max = bbox.Max;
+        double dx = max.X - min.X;
+        double dy = max.Y - min.Y;
+
+        List<Line> sideLines;
+        if (dx >= dy)
+        {
+            sideLines = new List<Line>
+            {
+                Line.CreateBound(new XYZ(min.X, min.Y - offsetFeet, min.Z), new XYZ(max.X, min.Y - offsetFeet, min.Z)),
+                Line.CreateBound(new XYZ(min.X, max.Y + offsetFeet, min.Z), new XYZ(max.X, max.Y + offsetFeet, min.Z))
+            };
+        }
+        else
+        {
+            sideLines = new List<Line>
+            {
+                Line.CreateBound(new XYZ(min.X - offsetFeet, min.Y, min.Z), new XYZ(min.X - offsetFeet, max.Y, min.Z)),
+                Line.CreateBound(new XYZ(max.X + offsetFeet, min.Y, min.Z), new XYZ(max.X + offsetFeet, max.Y, min.Z))
+            };
+        }
+
+        foreach (var line in sideLines)
+        {
+            if (line.ApproximateLength < 10 * MmToFeet) continue;
+            try
+            {
+                var wall = Wall.Create(doc, line, options.WallTypeId, levelId, height, baseOffset, false, false);
+                if (wall != null)
+                {
+                    var structParam = wall.get_Parameter(BuiltInParameter.WALL_STRUCTURAL_SIGNIFICANT);
+                    if (structParam != null && !structParam.IsReadOnly) structParam.Set(0);
+                    result.CreatedWallIds.Add(wall.Id);
+                    result.WallsCreated++;
+                }
+            }
+            catch (System.Exception ex) { result.Warnings.Add($"Dầm side wall: {ex.Message}"); }
+        }
+
+        if (options.IncludeBeamBottom)
+        {
+            Line? bottomLine = dx >= dy
+                ? Line.CreateBound(new XYZ(min.X, (min.Y + max.Y) / 2, min.Z), new XYZ(max.X, (min.Y + max.Y) / 2, min.Z))
+                : Line.CreateBound(new XYZ((min.X + max.X) / 2, min.Y, min.Z), new XYZ((min.X + max.X) / 2, max.Y, min.Z));
+
+            if (bottomLine != null && bottomLine.ApproximateLength >= 10 * MmToFeet)
+            {
+                try
+                {
+                    double bottomWallWidth = dy >= dx ? dx : dy;
+                    double bottomHeight = bottomWallWidth + 2 * offsetFeet;
+                    if (bottomHeight <= 0) bottomHeight = 100 * MmToFeet;
+
+                    var wall = Wall.Create(doc, bottomLine, options.WallTypeId, levelId, bottomHeight, baseOffset, false, false);
+                    if (wall != null)
+                    {
+                        var structParam = wall.get_Parameter(BuiltInParameter.WALL_STRUCTURAL_SIGNIFICANT);
+                        if (structParam != null && !structParam.IsReadOnly) structParam.Set(0);
+                        result.CreatedWallIds.Add(wall.Id);
+                        result.WallsCreated++;
+                    }
+                }
+                catch (System.Exception ex) { result.Warnings.Add($"Dầm bottom wall: {ex.Message}"); }
             }
         }
     }

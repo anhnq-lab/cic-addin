@@ -169,7 +169,7 @@
                                     <TextBlock Text="Parameter:" Style="{StaticResource FieldLabel}" 
                                                VerticalAlignment="Center" Margin="0,0,6,0"/>
                                     <ComboBox x:Name="CboRoomNameParam" Style="{StaticResource DarkComboBox}"
-                                              Height="28" Width="150" IsEditable="True">
+                                              Height="28" Width="150">
                                         <ComboBox.Resources>
                                             <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#45475A"/>
                                             <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#CDD6F4"/>

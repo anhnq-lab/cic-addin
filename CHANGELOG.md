@@ -2,6 +2,18 @@
 
 Tất cả các thay đổi đáng giá của dự án sẽ được ghi nhận tại file này.
 
+## [1.0.6] - 2026-03-23
+
+### Sửa lỗi (Fixed)
+- **Smart QTO:** Khắc phục trường Vật Liệu (MaterialName) luôn rỗng — nay trích xuất được vật liệu chính từ Structural Material, Compound Structure, hoặc Material Volumes.
+- **Auto Joint (Nối Cấu Kiện):** Sửa lỗi join trùng cặp Beam-Beam — thêm HashSet tracking để bỏ qua cặp đã xử lý.
+- **Hoàn Thiện Dầm/Cột (BeamColumnFinish):** Sửa lỗi tường bọc bị lệch khi dầm nằm xiên — sử dụng LocationCurve thay vì BoundingBox để xác định phương dầm chính xác.
+
+### Cải tiến (Improved)
+- **AI Chat:** Nâng cấp từ Gemini 2.0 Flash lên **Gemini 2.5 Flash** — trả lời chính xác hơn, tăng output lên 4096 tokens.
+- **CAD to BIM (CadAutoDraw):** Hỗ trợ **đường cong Arc** khi tạo Wall và Beam từ CAD (trước đây chỉ hỗ trợ Line thẳng).
+- **Smart QTO — Xuất Excel:** Bổ sung cột **Vật liệu**, thêm **Sheet Tổng hợp** theo hạng mục với tổng cộng, cố định dòng tiêu đề (Freeze Panes), định dạng số.
+
 ## [1.0.5] - 2026-03-02
 
 ### Thay đổi & Cập nhật

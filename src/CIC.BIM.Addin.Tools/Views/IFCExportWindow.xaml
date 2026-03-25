@@ -1,0 +1,115 @@
+<Window x:Class="CIC.BIM.Addin.Tools.Views.IFCExportWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="📦 Xuất IFC — CIC Tools"
+        Width="620" Height="540" MinWidth="550" MinHeight="480"
+        WindowStartupLocation="CenterScreen" ResizeMode="CanResizeWithGrip"
+        Background="#1E1E2E" Foreground="#CDD6F4">
+
+    <Window.Resources>
+        <ResourceDictionary Source="../Themes/ToolStyles.xaml"/>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ═══ ROW 0: HEADER ═══ -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="📦 Xuất IFC" FontSize="20" FontWeight="Bold"/>
+            <TextBlock Text="Xuất mô hình sang định dạng IFC chuẩn quốc tế"
+                       FontSize="11" Foreground="#6C7086" Margin="0,2,0,0"/>
+            <Border Height="2" Background="#89B4FA" Margin="0,10,0,0" Opacity="0.4"/>
+        </StackPanel>
+
+        <!-- ═══ ROW 1: IFC VERSION + VIEW ═══ -->
+        <Border Grid.Row="1" Style="{StaticResource Card}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Phiên bản IFC" Style="{StaticResource FieldLabel}"/>
+                    <ComboBox x:Name="CboVersion" Style="{StaticResource DarkComboBox}" FontSize="12.5"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="View lọc đối tượng" Style="{StaticResource FieldLabel}"/>
+                    <ComboBox x:Name="CboView" Style="{StaticResource DarkComboBox}" FontSize="12.5"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ═══ ROW 2: OUTPUT PATH ═══ -->
+        <Border Grid.Row="2" Style="{StaticResource Card}">
+            <StackPanel>
+                <TextBlock Text="📁 Đường dẫn xuất" Style="{StaticResource FieldLabel}"/>
+                <DockPanel>
+                    <Button x:Name="BtnBrowse" Content="Chọn..." Style="{StaticResource SecondaryButton}"
+                            DockPanel.Dock="Right" Click="BtnBrowse_Click" Padding="14,6" Margin="8,0,0,0"/>
+                    <TextBox x:Name="TxtOutputPath" Style="{StaticResource DarkTextBox}" IsReadOnly="True"
+                             FontSize="11.5"/>
+                </DockPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- ═══ ROW 3: OPTIONS ═══ -->
+        <Border Grid.Row="3" Style="{StaticResource Card}">
+            <StackPanel>
+                <TextBlock Text="Tùy chọn xuất" Style="{StaticResource SectionHeader}" Margin="0,0,0,8"/>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <CheckBox x:Name="ChkBaseQuantities" Content="Xuất Base Quantities (khối lượng IFC)"
+                                  Style="{StaticResource DarkCheckBox}" IsChecked="True"/>
+                        <CheckBox x:Name="ChkRevitPsets" Content="Xuất Property Sets Revit"
+                                  Style="{StaticResource DarkCheckBox}" IsChecked="True"/>
+                        <CheckBox x:Name="ChkFMProperties" Content="Bao gồm tham số FM (CIC_FM_*)"
+                                  Style="{StaticResource DarkCheckBox}" IsChecked="True"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1">
+                        <CheckBox x:Name="ChkSplitWalls" Content="Tách tường/cột theo tầng"
+                                  Style="{StaticResource DarkCheckBox}" IsChecked="True"/>
+                        <CheckBox x:Name="ChkVisibleOnly" Content="Chỉ xuất phần tử nhìn thấy"
+                                  Style="{StaticResource DarkCheckBox}" IsChecked="False"/>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- ═══ ROW 4: INFO ═══ -->
+        <Border Grid.Row="4" Background="#233A5C" CornerRadius="6" Padding="12,8" Margin="0,0,0,0">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="ℹ️" FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBlock x:Name="TxtInfo" Text="Sẵn sàng xuất IFC."
+                           FontSize="11.5" Foreground="#89B4FA" VerticalAlignment="Center" TextWrapping="Wrap"/>
+            </StackPanel>
+        </Border>
+
+        <!-- ═══ ROW 6: FOOTER ═══ -->
+        <DockPanel Grid.Row="6" Margin="0,16,0,0">
+            <Button x:Name="BtnClose" Content="Đóng" Style="{StaticResource SecondaryButton}"
+                    DockPanel.Dock="Right" Click="BtnClose_Click" Margin="8,0,0,0"/>
+            <Button x:Name="BtnExport" Content="📦 Xuất IFC" Style="{StaticResource PrimaryButton}"
+                    DockPanel.Dock="Right" Click="BtnExport_Click"/>
+            <TextBlock x:Name="TxtStatus" Text="" FontSize="11" Foreground="#6C7086"
+                       VerticalAlignment="Center"/>
+        </DockPanel>
+    </Grid>
+</Window>

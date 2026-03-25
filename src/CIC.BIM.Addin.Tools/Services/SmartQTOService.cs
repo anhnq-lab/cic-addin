@@ -88,6 +88,7 @@ public class SmartQTOService
                 double totalArea = 0;
                 double totalLength = 0;
                 int count = 0;
+                string materialName = "";
 
                 foreach (var element in group)
                 {
@@ -99,6 +100,12 @@ public class SmartQTOService
                     var length = GetParamValue(element, BuiltInParameter.CURVE_ELEM_LENGTH);
                     if (length == 0) length = GetParamValue(element, BuiltInParameter.INSTANCE_LENGTH_PARAM);
                     totalLength += length;
+
+                    // Extract material name from first element in group
+                    if (string.IsNullOrEmpty(materialName))
+                    {
+                        materialName = GetMaterialName(element);
+                    }
                 }
 
                 // Convert internal units (cubic feet, square feet, feet) to metric
@@ -111,7 +118,8 @@ public class SmartQTOService
                     Count = count,
                     VolumeM3 = UnitUtils.ConvertFromInternalUnits(totalVolume, UnitTypeId.CubicMeters),
                     AreaM2 = UnitUtils.ConvertFromInternalUnits(totalArea, UnitTypeId.SquareMeters),
-                    LengthM = UnitUtils.ConvertFromInternalUnits(totalLength, UnitTypeId.Meters)
+                    LengthM = UnitUtils.ConvertFromInternalUnits(totalLength, UnitTypeId.Meters),
+                    MaterialName = materialName
                 });
             }
         }
@@ -137,5 +145,48 @@ public class SmartQTOService
             return param.AsDouble();
         }
         return 0;
+    }
+
+    /// <summary>
+    /// Trích xuất tên vật liệu chính từ element.
+    /// Ưu tiên: STRUCTURAL_MATERIAL_PARAM > CompoundStructure > Material Volumes.
+    /// </summary>
+    private string GetMaterialName(Element element)
+    {
+        try
+        {
+            // 1. Structural Material parameter (beams, columns, framing)
+            var matParam = element.get_Parameter(BuiltInParameter.STRUCTURAL_MATERIAL_PARAM);
+            if (matParam != null && matParam.HasValue)
+            {
+                var matId = matParam.AsElementId();
+                if (matId != ElementId.InvalidElementId && _doc.GetElement(matId) is Material mat)
+                    return mat.Name;
+            }
+
+            // 2. For walls/floors — get primary material from compound structure
+            if (element is Wall wall)
+            {
+                var cs = wall.WallType.GetCompoundStructure();
+                if (cs != null)
+                {
+                    var layers = cs.GetLayers();
+                    var structural = layers.FirstOrDefault(l => l.Function == MaterialFunctionAssignment.Structure);
+                    if (structural.MaterialId != ElementId.InvalidElementId && _doc.GetElement(structural.MaterialId) is Material sMat)
+                        return sMat.Name;
+                }
+            }
+
+            // 3. Fallback: first material with volume
+            var matIds = element.GetMaterialIds(false);
+            if (matIds.Any())
+            {
+                var firstMat = _doc.GetElement(matIds.First()) as Material;
+                if (firstMat != null) return firstMat.Name;
+            }
+        }
+        catch { }
+
+        return "";
     }
 }

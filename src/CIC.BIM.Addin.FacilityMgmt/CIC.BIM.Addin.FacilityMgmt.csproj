@@ -3,11 +3,7 @@
   <PropertyGroup>
     <RootNamespace>CIC.BIM.Addin.FacilityMgmt</RootNamespace>
     <AssemblyName>CIC.BIM.Addin.FacilityMgmt</AssemblyName>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net48'">
-    <GenerateTargetPlatformAttribute>false</GenerateTargetPlatformAttribute>
-    <GenerateSupportedOSPlatformAttribute>false</GenerateSupportedOSPlatformAttribute>
+    <NoWarn>$(NoWarn);NU1605</NoWarn>
   </PropertyGroup>
 
   <!-- ClosedXML for Excel export — version-conditional for framework compat -->
@@ -24,11 +20,19 @@
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
     <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Data.DataSetExtensions" />
   </ItemGroup>
 
   <!-- Embed shared parameter file -->
   <ItemGroup>
     <EmbeddedResource Include="FMSharedParamFile.txt" />
+  </ItemGroup>
+  <!-- Reference CIC.BIM.Addin.Tools for AuthGuard -->
+  <ItemGroup>
+    <ProjectReference Include="..\CIC.BIM.Addin.Tools\CIC.BIM.Addin.Tools.csproj">
+      <Private>false</Private>
+      <PrivateAssets>all</PrivateAssets>
+    </ProjectReference>
   </ItemGroup>
 
 </Project>

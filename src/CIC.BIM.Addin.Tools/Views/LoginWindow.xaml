@@ -1,0 +1,221 @@
+<Window x:Class="CIC.BIM.Addin.Tools.Views.LoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="CIC Tools — Đăng nhập"
+        Width="420" Height="520"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="True">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/CIC.BIM.Addin.Tools;component/Themes/ToolStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border Background="{StaticResource BaseBgBrush}" CornerRadius="12" 
+            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+            Effect="{x:Null}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>  <!-- Title bar -->
+                <RowDefinition Height="*"/>     <!-- Content -->
+            </Grid.RowDefinitions>
+
+            <!-- ═══ TITLE BAR ═══ -->
+            <Border Grid.Row="0" Background="{StaticResource CardBgBrush}" 
+                    CornerRadius="12,12,0,0" Padding="16,10"
+                    MouseDown="TitleBar_MouseDown">
+                <Grid>
+                    <TextBlock Text="CIC Tools" FontSize="14" FontWeight="Bold"
+                               Foreground="{StaticResource BlueBrush}"
+                               VerticalAlignment="Center"/>
+                    <Button Content="✕" HorizontalAlignment="Right" 
+                            Style="{StaticResource SecondaryButton}"
+                            Padding="6,2" FontSize="14"
+                            Click="BtnClose_Click"/>
+                </Grid>
+            </Border>
+
+            <!-- ═══ CONTENT ═══ -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" 
+                          HorizontalScrollBarVisibility="Disabled">
+                <Grid Margin="32,20,32,24">
+                    <!-- ═══ LOGIN FORM (shown when not logged in) ═══ -->
+                    <StackPanel x:Name="PanelLogin" Visibility="Visible">
+
+                        <!-- Logo / Brand -->
+                        <StackPanel HorizontalAlignment="Center" Margin="0,8,0,24">
+                            <TextBlock Text="🚀" FontSize="40" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                            <TextBlock x:Name="TxtTitle" Text="Bắt đầu với CIC Tools" FontSize="18" FontWeight="Bold"
+                                       Foreground="{StaticResource TextBrush}" HorizontalAlignment="Center"/>
+                            <TextBlock x:Name="TxtSubtitle" Text="Chọn phương thức nhanh nhất bên dưới" FontSize="12"
+                                       Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center"
+                                       Margin="0,4,0,0"/>
+                        </StackPanel>
+
+                        <!-- Google Sign In button (Promoted to top) -->
+                        <Button x:Name="BtnGoogleSignIn" Height="44" FontSize="13"
+                                HorizontalAlignment="Stretch"
+                                Background="{StaticResource BlueBrush}" Foreground="#1E1E2E"
+                                BorderThickness="0" FontWeight="SemiBold"
+                                Cursor="Hand"
+                                Click="BtnGoogleSignIn_Click">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Border Background="White" Width="20" Height="20" CornerRadius="10" Margin="0,0,10,0">
+                                     <TextBlock Text="G" FontSize="14" FontWeight="Bold" Foreground="#4285F4" 
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"/>
+                                </Border>
+                                <TextBlock Text="Đăng ký / Đăng nhập bằng Google" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- ── Divider ── -->
+                        <Grid Margin="0,20,0,16">
+                            <Border Height="1" Background="#585B70" VerticalAlignment="Center"/>
+                            <TextBlock Text="hoặc sử dụng Email" FontSize="11" HorizontalAlignment="Center"
+                                       Foreground="{StaticResource TextMutedBrush}"
+                                       Background="{StaticResource BaseBgBrush}" Padding="12,0"/>
+                        </Grid>
+
+                        <!-- Full Name (Only for Registration mode) -->
+                        <StackPanel x:Name="PanelFullName" Visibility="Collapsed">
+                            <TextBlock Text="Họ và tên" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="TxtFullName" Style="{StaticResource DarkTextBox}"
+                                     Margin="0,0,0,12" Height="36"/>
+                        </StackPanel>
+
+                        <!-- Email -->
+                        <TextBlock Text="Email" Style="{StaticResource FieldLabel}"/>
+                        <TextBox x:Name="TxtEmail" Style="{StaticResource DarkTextBox}"
+                                 Margin="0,0,0,12" Height="36"
+                                 KeyDown="Input_KeyDown"/>
+
+                        <!-- Password with show/hide toggle -->
+                        <TextBlock Text="Mật khẩu" Style="{StaticResource FieldLabel}"/>
+                        <Grid Margin="0,0,0,8" Height="36">
+                            <PasswordBox x:Name="TxtPassword"
+                                         Background="#45475A" Foreground="#CDD6F4"
+                                         BorderBrush="#585B70" BorderThickness="1"
+                                         FontSize="13" Padding="8,6"
+                                         KeyDown="Input_KeyDown"/>
+                            <TextBox x:Name="TxtPasswordVisible" Visibility="Collapsed"
+                                     Style="{StaticResource DarkTextBox}"
+                                     FontSize="13"
+                                     KeyDown="Input_KeyDown"/>
+                            <Button x:Name="BtnTogglePassword" Content="👁"
+                                    HorizontalAlignment="Right" VerticalAlignment="Center"
+                                    Background="Transparent" BorderThickness="0"
+                                    Foreground="{StaticResource TextMutedBrush}"
+                                    FontSize="14" Padding="8,4" Margin="0,0,4,0"
+                                    Cursor="Hand"
+                                    Click="BtnTogglePassword_Click"/>
+                        </Grid>
+
+                        <!-- Extra help links -->
+                        <Grid Margin="0,0,0,16">
+                            <CheckBox x:Name="ChkRemember" Content="Ghi nhớ"
+                                      Foreground="{StaticResource TextMutedBrush}"
+                                      FontSize="11" VerticalAlignment="Center"
+                                      IsChecked="True"/>
+                            <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <Hyperlink x:Name="LinkToggleMode" Click="LinkToggleMode_Click" 
+                                           Foreground="{StaticResource GreenBrush}" FontSize="11"
+                                           TextDecorations="None">Đăng ký tài khoản</Hyperlink>
+                            </TextBlock>
+                        </Grid>
+
+                        <!-- Error message -->
+                        <Border x:Name="PanelError" Visibility="Collapsed"
+                                Background="#302030" CornerRadius="6" Padding="12,8" Margin="0,0,0,12">
+                            <TextBlock x:Name="TxtError" Foreground="{StaticResource RedBrush}"
+                                       FontSize="12" TextWrapping="Wrap"/>
+                        </Border>
+
+                        <!-- Main Button (Login / Register) -->
+                        <Button x:Name="BtnLogin" Content="Đăng nhập"
+                                Style="{StaticResource SecondaryButton}"
+                                Height="40" FontSize="14"
+                                HorizontalAlignment="Stretch"
+                                Click="BtnLogin_Click"/>
+
+                        <!-- Loading indicator -->
+                        <StackPanel x:Name="PanelLoading" Visibility="Collapsed"
+                                    HorizontalAlignment="Center" Margin="0,12,0,0">
+                            <TextBlock Text="⏳ Đang xử lý..." FontSize="12"
+                                       Foreground="{StaticResource TextMutedBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- ═══ USER INFO (shown when logged in) ═══ -->
+                    <StackPanel x:Name="PanelLoggedIn" Visibility="Collapsed">
+
+                        <!-- Avatar + Info -->
+                        <StackPanel HorizontalAlignment="Center" Margin="0,16,0,24">
+                            <Border Width="72" Height="72" CornerRadius="36"
+                                    Background="{StaticResource SurfaceBgBrush}"
+                                    HorizontalAlignment="Center" Margin="0,0,0,16">
+                                <TextBlock x:Name="TxtAvatar" FontSize="32"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Foreground="{StaticResource BlueBrush}"/>
+                            </Border>
+                            
+                            <TextBlock Text="✅ Đã đăng nhập" FontSize="12"
+                                       Foreground="{StaticResource GreenBrush}" 
+                                       HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                            
+                            <TextBlock x:Name="TxtUserName" FontSize="18" FontWeight="Bold"
+                                       Foreground="{StaticResource TextBrush}" 
+                                       HorizontalAlignment="Center" TextAlignment="Center"/>
+                        </StackPanel>
+
+                        <!-- User details card -->
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <!-- Email -->
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Email" Foreground="{StaticResource TextMutedBrush}" 
+                                               FontSize="12"/>
+                                    <TextBlock x:Name="TxtInfoEmail" Grid.Column="1" FontSize="12"
+                                               Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis"/>
+                                </Grid>
+
+                                <!-- Role -->
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Vai trò" Foreground="{StaticResource TextMutedBrush}"
+                                               FontSize="12"/>
+                                    <Border Grid.Column="1" Style="{StaticResource DeptBadge}"
+                                            Background="#1E3A5F">
+                                        <TextBlock x:Name="TxtInfoRole" FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource BlueBrush}"/>
+                                    </Border>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Logout button -->
+                        <Button Content="🚪 Đăng xuất"
+                                Style="{StaticResource SecondaryButton}"
+                                Height="36" FontSize="13"
+                                HorizontalAlignment="Stretch"
+                                Margin="0,8,0,0"
+                                Click="BtnLogout_Click"/>
+                    </StackPanel>
+                </Grid>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</Window>

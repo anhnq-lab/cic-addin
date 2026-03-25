@@ -12,6 +12,8 @@ public class AutoJointCommand : IExternalCommand
 {
     public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
     {
+        if (!AuthGuard.EnsureLoggedIn()) return Result.Cancelled;
+
         try
         {
             var uiDoc = commandData.Application.ActiveUIDocument;

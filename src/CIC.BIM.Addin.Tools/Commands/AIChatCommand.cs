@@ -1,6 +1,7 @@
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
+using CIC.BIM.Addin.Tools.Services;
 using CIC.BIM.Addin.Tools.Views;
 
 namespace CIC.BIM.Addin.Tools.Commands;
@@ -10,6 +11,8 @@ public class AIChatCommand : IExternalCommand
 {
     public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
     {
+        if (!AuthGuard.EnsureLoggedIn()) return Result.Cancelled;
+
         var doc = commandData.Application.ActiveUIDocument.Document;
 
         var window = new AIChatWindow(doc);
